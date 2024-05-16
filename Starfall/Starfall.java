@@ -4,6 +4,15 @@
  * Author: Casper Hillyer Magoffin
  */
 
+
+/* Laterna imports */
+import com.googlecode.lanterna.input.KeyStroke;
+import com.googlecode.lanterna.input.KeyType;
+import com.googlecode.lanterna.screen.Screen;
+import com.googlecode.lanterna.screen.TerminalScreen;
+import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
+import com.googlecode.lanterna.terminal.Terminal;
+
 import java.util.Scanner;
 import java.io.Reader;
 import java.io.InputStream;
@@ -13,26 +22,32 @@ import java.io.IOException;
 
 public class Starfall {
     public static void main(String[] args) throws IOException {
-        /* Draw the main menu */
-        UI.mainMenu();
-
-        /* Class variables */
         Scanner scanner = new Scanner(System.in); // keyboard listner
-        Reader reader = new InputStreamReader(System.in);
+
+        /* Laterna terminal setup, this is for handling instantkeys and things like that */
+        DefaultTerminalFactory defaultTerminalFactory = new DefaultTerminalFactory();
+        Screen screen = null;
         
+        Terminal terminal = defaultTerminalFactory.createTerminal();
+        screen = new TerminalScreen(terminal);
+
+        screen.startScreen();
+        screen.refresh();
+
+        KeyStroke keyStroke = null;
+        KeyType keyType = keyStroke != null ? keyStroke.getKeyType() : null;
+        
+        /* Class variables */
         int playerX = 0;
         int playerY = 0;
 
         boolean validInput = false; // for idiot proofing
 
-
+        /* Draw the main menu */
+        UI.mainMenu();
+        
         /* Start game on key press */
-        while (!validInput) {
-            if (reader.read() > 0) {
-                validInput = true;
-                continue;
-            }
-       }
+        keyStroke = screen.readInput();
         
         /* Add story here in the future */
 
@@ -66,7 +81,7 @@ public class Starfall {
         
             /* Get player direction, later change this to a separate input thread for better movement */
             System.out.println("Move time");
-            int coords[] = Player.move(scanner.nextLine(), playerX, playerY);
+            int coords[] = Player.move(screen.readInput().getCharacter(), playerX, playerY);
 
             /* Update positions from Player.move */
             playerX = coords[0];

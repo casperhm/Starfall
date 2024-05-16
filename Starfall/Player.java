@@ -14,17 +14,17 @@ public class Player {
      * Accepts String direction (up, dow, left, right), and two ints for the current player coords
      * Returns coords[], coords[0] is playerX and coords[1] is playerY
      */
-    public static int[] move(String direction, int playerX, int playerY) {
+    public static int[] move(char direction, int playerX, int playerY) {
         int[] coords = new int[2];
 
         switch (direction) {
-            case "up": playerY --;
+            case 'w': playerY --;
             break;
-            case "down": playerY ++;
+            case 's': playerY ++;
             break;
-            case "left": playerX --;
+            case 'a': playerX --;
             break;
-            case "right": playerX ++;
+            case 'd': playerX ++;
             break; 
         }
 
