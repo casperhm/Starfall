@@ -4,89 +4,174 @@
  * Author: Casper Hillyer Magoffin
  */
 
-
 /* Laterna imports */
+import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.input.KeyStroke;
-import com.googlecode.lanterna.input.KeyType;
 import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.screen.TerminalScreen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
 import com.googlecode.lanterna.terminal.Terminal;
 
-import java.util.Scanner;
-import java.io.Reader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
 import java.io.IOException;
 
 public class Starfall {
-    public static void main(String[] args) throws IOException {
-        Scanner scanner = new Scanner(System.in); // keyboard listner
 
-        /* Laterna terminal setup, this is for handling instantkeys and things like that */
-        DefaultTerminalFactory defaultTerminalFactory = new DefaultTerminalFactory();
-        Screen screen = null;
-        
-        Terminal terminal = defaultTerminalFactory.createTerminal();
-        screen = new TerminalScreen(terminal);
+    private final Screen screen;
 
-        screen.startScreen();
-        screen.refresh();
+    private TextGraphics textGraphics;
+    private int playerX = 0;
+    private int playerY = 0;
+    private int terminalHeight;
+    private int terminalWidth;
 
-        KeyStroke keyStroke = null;
-        KeyType keyType = keyStroke != null ? keyStroke.getKeyType() : null;
-        
-        /* Class variables */
-        int playerX = 0;
-        int playerY = 0;
+    /**
+     * Create a new game instance
+     * 
+     * @param screen the screen object to draw the game on
+     */
+    public Starfall(Screen screen) {
+        this.screen = screen;
+        textGraphics = screen.newTextGraphics();
+        terminalHeight = screen.getTerminalSize().getRows();
+        terminalWidth = screen.getTerminalSize().getColumns();
+    }
 
-        boolean validInput = false; // for idiot proofing
-
+    /**
+     * Run does some basic setup like drawing the main menu, and then runs the main
+     * game loop. this is the most important method.
+     * 
+     * @throws IOException
+     */
+    public void run() throws IOException {
         /* Draw the main menu */
         UI.mainMenu();
-        
+        System.out.println(terminalWidth);
+        System.out.println(terminalHeight);
+
         /* Start game on key press */
-        keyStroke = screen.readInput();
-        
+        screen.readInput();
+
         /* Add story here in the future */
 
-        /* Create the map array from map.txt*/
-        char[][] map = UI.map(); 
+        /* Create the map array from map.txt */
+        char[][] map = UI.map();
 
-        /* Find the players starting coords */
-        for (int row = 0; row < map.length; row ++) {
-            for (int col = 0; col < map[row].length; col ++) {
-                if (map[row][col] == '@') {
-                    playerX = col;
-                    playerY = row;
-                }
-            }
-        }
+        /* Draw the map */
+        drawMap(map);
+        screen.refresh();
 
         /* This is the main game loop */
         while (true) {
-            /* Print the map */
-            Methods.clearScreen();
-            for (int row = 0; row < map.length; row ++) {
-                for (int col = 0; col < map[row].length; col ++) {
-                    if (playerY == row && playerX == col) {
-                        System.out.print("@");
-                    } else {
-                        System.out.print(map[row][col]);
-                    }
-                }
-                System.out.println();
-            }        
-        
-            /* Get player direction, later change this to a separate input thread for better movement */
-            System.out.println("Move time");
-            int coords[] = Player.move(screen.readInput().getCharacter(), playerX, playerY);
+            /* Get player direction */
+            KeyStroke keyStroke = screen.readInput();
+            int coords[] = Player.move(keyStroke, playerX, playerY, map[0].length, map.length);
 
             /* Update positions from Player.move */
             playerX = coords[0];
             playerY = coords[1];
+
+            /* Update terminal sizes */
+            screen.doResizeIfNecessary();
+            terminalHeight = screen.getTerminalSize().getRows();
+            terminalWidth = screen.getTerminalSize().getColumns();
+
+            drawMap(map);
+
+            screen.refresh();
+        }
+    }
+
+    /**
+     * drawMap
+     * Calculates player quadrant and draws parts of the map accordingly
+     * 
+     * @param map the map to be drawn
+     */
+    private void drawMap(char[][] map) {
+        /*
+         * The game map is divided into quadrants, sized to the terminal window
+         * 
+         * For example with a terminalWidth of 100, and a playerX of of 312, this would
+         * put the player in quadrant 2 on the x axis
+         * 
+         * (quadrants start at quadX 0 and qaudY 0)
+         */
+        int quadX = playerX / terminalWidth;
+        int quadY = playerY / terminalHeight;
+
+        /*
+         * Map origin is for calculating the top left point of each qaudrant
+         * 
+         * For example in quadrant 2, the mapOriginX would be 200 - (assuming a
+         * terminalWidth of 100)
+         */
+        int mapOriginX = quadX * terminalWidth;
+        int mapOriginY = quadY * terminalHeight;
+
+        /*
+         * Print the map
+         * 
+         * row = mapOriginY ; col = mapOriginX ; this starts the printing at the top
+         * left point of the qaudrant
+         * 
+         * row < mapOriginY + terminalHeight ; col < mapOriginX + terminalWidth ; this
+         * stops the printing when it reaches the bottom right point of the quadrant
+         */
+        for (int row = mapOriginY; row < mapOriginY + terminalHeight; row++) {
+            for (int col = mapOriginX; col < mapOriginX + terminalWidth; col++) {
+
+                /*
+                 * Draw coords are to get the coorect coordinate to modify relative to the
+                 * quadrant
+                 * 
+                 * Draw coordinates are used to print to the laterna "screen" which starts at
+                 * 0,0 on top left and goes to terminalWidth and Height at the bottom right
+                 * 
+                 * For example, if col = 150, mapOriginX would be 100, therefore drawX would be
+                 * 50. (with quadrant sizes of 100)
+                 * 
+                 * This enables the text to print at the 50 index, even though its orginal point
+                 * in the map is 150, or 250, etc.
+                 */
+                int drawX = col - mapOriginX;
+                int drawY = row - mapOriginY;
+
+                /*
+                 * This ensures that when a quadrant cannot fill the terminal width, for example
+                 * the last quadrant to the right, it stops printing before the game crashes
+                 */
+                if (row < map.length && col < map[row].length) {
+
+                    /* Print player token if correct coords */
+                    if (playerY == row && playerX == col) {
+                        textGraphics.setCharacter(drawX, drawY, '@');
+                    } else {
+                        textGraphics.setCharacter(drawX, drawY, map[row][col]);
+                    }
+                } else {
+                    /*
+                     * Clears the drawing pixel to ' ', without this when it reaches the edge of the
+                     * map it still shows parts of the old quadrants
+                     * 
+                     * This draws over the old parts of the map that still show
+                     */
+                    textGraphics.setCharacter(drawX, drawY, ' ');
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        /*
+         * Laterna terminal setup, this is for handling instantkeys and things like that
+         */
+        DefaultTerminalFactory defaultTerminalFactory = new DefaultTerminalFactory();
+
+        Terminal terminal = defaultTerminalFactory.createTerminal();
+        try (Screen screen = new TerminalScreen(terminal)) {
+            screen.startScreen();
+            var game = new Starfall(screen);
+            game.run();
         }
     }
 }
-
