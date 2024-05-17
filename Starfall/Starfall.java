@@ -15,7 +15,6 @@ import com.googlecode.lanterna.terminal.Terminal;
 import java.io.IOException;
 
 public class Starfall {
-
     private final Screen screen;
 
     private TextGraphics textGraphics;
