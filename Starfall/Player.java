@@ -1,13 +1,22 @@
 /* Player
- * This class contains player movement and such
+ * This class contains player movement and collisions etc
  * Created: 16/5/24
  * Author: Casper Hillyer Magoffin
  */
 
+import java.util.*;
 import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
 
 public class Player {
+
+    /* WALLS collision layer - player cannot walk thorugh these */
+    private static final Set<Character> WALLS = Collections
+            .unmodifiableSet(new HashSet<>(Arrays.asList('#', '/', '\\')));
+
+    /* ENTER collision layer - player can enter rooms here */
+    private static final Set<Character> ENTER = Collections
+            .unmodifiableSet(new HashSet<>(Arrays.asList('*', 'O', '~')));
 
     /**
      * Move
@@ -81,5 +90,43 @@ public class Player {
         coords[1] = playerY;
 
         return coords;
+    }
+
+    /**
+     * canMove
+     * 
+     * Checks if a tile is part of the WALLS set ; if it can be moved to
+     * 
+     * @param map     the map[][] to check
+     * @param playerX the x coordinate to check
+     * @param playerY the y coordinate to check
+     * @return true / false
+     */
+    public static boolean canMove(char[][] map, int playerX, int playerY) {
+        /* Check if the tile player is trynig to move to is in WALLS */
+        if (WALLS.contains(map[playerY][playerX])) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * canEnter
+     * 
+     * Checks if a tile is part of the ENTER set ; if it can be entered
+     * 
+     * @param map     the map[][] to check
+     * @param playerX the x coordinate to check
+     * @param playerY the y coordinate to check
+     * @return true / false
+     */
+    public static boolean canEnter(char[][] map, int playerX, int playerY) {
+        /* Check if the tile player is trynig to move to is in ENTER */
+        if (ENTER.contains(map[playerY][playerX])) {
+            return false;
+        } else {
+            return true;
+        }
     }
 }

@@ -9,6 +9,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.nio.file.Paths;
+import java.nio.file.Path;
 
 public class UI {
 
@@ -40,20 +42,20 @@ public class UI {
     System.out.println("                    Press any key to start");
   }
 
-  /*
+  /**
    * map
-   * Creates the map[][] from text file
-   * Created: 15/5/24
-   * Author: Casper Hillyer Magoffin
    * 
-   * Returns a char[][]
+   * creates a 2d array from a map file
+   * 
+   * @param map the filepath to use
+   * @return map[][]
    */
-  public static char[][] map() {
+  public static char[][] map(Path path) {
     Methods.clearScreen();
 
     var rows = new ArrayList<char[]>();
 
-    try (var in = Files.newBufferedReader(Paths.get("txt/map.txt"), StandardCharsets.UTF_8)) {
+    try (var in = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
       String line = null;
       while ((line = in.readLine()) != null) { // runs until there are no more lines
         rows.add(line.toCharArray()); // rows contains a char[] for each line

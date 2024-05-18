@@ -5,16 +5,18 @@
  */
 
 public class Methods {
-    /* clearScreen
+    /*
+     * clearScreen
      *
-     * Clears the terminal window 
+     * Clears the terminal window
      */
-    public static void clearScreen() {  
-        System.out.print("\033[H\033[2J");  
-        System.out.flush();  
-    } 
+    public static void clearScreen() {
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
+    }
 
-    /* stringToArray
+    /*
+     * stringToArray
      *
      * Splits a string into an array at each non - alphanumeric character
      * Accepts a String
@@ -25,15 +27,17 @@ public class Methods {
         return words;
     }
 
-    /* arrayToString
+    /*
+     * arrayToString
      *
-     * Joins each element of a String[] together into one String (Ignores null elements)
+     * Joins each element of a String[] together into one String (Ignores null
+     * elements)
      * Accepts a String[]
      * Returns a String
      */
     public static String arrayToString(String[] array) {
         String string = "";
-        for (int i = 0; i < array.length; i ++) {
+        for (int i = 0; i < array.length; i++) {
             if (array[i] != null) {
                 string += array[i];
                 string += " ";
@@ -42,7 +46,8 @@ public class Methods {
         return string;
     }
 
-    /* randInt
+    /*
+     * randInt
      * 
      * Gets a random integer between 0 and num
      * Accepts num
@@ -51,9 +56,7 @@ public class Methods {
     public static int randInt(double num) {
         num = Math.random() * num;
         num = Math.round(num);
-        return (int)num;
+        return (int) num;
     }
 
-
 }
-

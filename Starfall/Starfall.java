@@ -13,13 +13,14 @@ import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
 import com.googlecode.lanterna.terminal.Terminal;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 
 public class Starfall {
     private final Screen screen;
 
     private TextGraphics textGraphics;
-    private int playerX = 0;
-    private int playerY = 0;
+    private int playerX = 10;
+    private int playerY = 10;
     private int terminalHeight;
     private int terminalWidth;
 
@@ -53,7 +54,7 @@ public class Starfall {
         /* Add story here in the future */
 
         /* Create the map array from map.txt */
-        char[][] map = UI.map();
+        char[][] map = UI.map(Paths.get("txt", "map.txt"));
 
         /* Draw the map */
         drawMap(map);
@@ -65,10 +66,16 @@ public class Starfall {
             KeyStroke keyStroke = screen.readInput();
             int coords[] = Player.move(keyStroke, playerX, playerY, map[0].length, map.length);
 
-            /* Update positions from Player.move */
-            playerX = coords[0];
-            playerY = coords[1];
+            /*
+             * Update positions from Player.move, but only if it is a valid position ; (not
+             * blocked by walls)
+             */
+            if (Player.canMove(map, coords[0], coords[1])) {
+                playerX = coords[0];
+                playerY = coords[1];
+            }
 
+            /* Check if player can enter */
             /* Update terminal sizes */
             screen.doResizeIfNecessary();
             terminalHeight = screen.getTerminalSize().getRows();
