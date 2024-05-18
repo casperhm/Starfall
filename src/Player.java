@@ -104,11 +104,7 @@ public class Player {
      */
     public static boolean canMove(char[][] map, int playerX, int playerY) {
         /* Check if the tile player is trynig to move to is in WALLS */
-        if (WALLS.contains(map[playerY][playerX])) {
-            return false;
-        } else {
-            return true;
-        }
+        return !WALLS.contains(map[playerY][playerX]);
     }
 
     /**
@@ -123,10 +119,8 @@ public class Player {
      */
     public static boolean canEnter(char[][] map, int playerX, int playerY) {
         /* Check if the tile player is trynig to move to is in ENTER */
-        if (ENTER.contains(map[playerY][playerX])) {
-            return false;
-        } else {
-            return true;
-        }
+        return ENTER.contains(map[playerY][playerX]);
+
     }
+
 }
