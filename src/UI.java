@@ -1,3 +1,4 @@
+
 /* UI
  * This class contains methods to print ASCII art of interfaces such as the main menu and shop.
  * Date: 15/5/24

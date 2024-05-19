@@ -12,7 +12,7 @@ public class Player {
 
     /* WALLS collision layer - player cannot walk thorugh these */
     private static final Set<Character> WALLS = Collections
-            .unmodifiableSet(new HashSet<>(Arrays.asList('#', '/', '\\')));
+            .unmodifiableSet(new HashSet<>(Arrays.asList('#', '/', '\\', '|', '-', '+')));
 
     /* ENTER collision layer - player can enter rooms here */
     private static final Set<Character> ENTER = Collections

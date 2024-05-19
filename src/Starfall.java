@@ -93,6 +93,16 @@ public class Starfall {
 
                 map = UI.map(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)));
 
+                /* Find where the entrance is in the map */
+                for (int row = 0; row < map.length; row++) {
+                    for (int col = 0; col < map[0].length; col++) {
+                        if (map[row][col] == '0') {
+                            playerX = row;
+                            playerY = col;
+                        }
+                    }
+                }
+
                 /* For exiting rooms back to the main map */
             } else if ((keyType == KeyType.Character && keyStroke.getCharacter() == ' ')
                     && Player.canExit(map, playerX, playerY)) {
