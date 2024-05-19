@@ -7,6 +7,7 @@
 /* Laterna imports */
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.input.KeyStroke;
+import com.googlecode.lanterna.input.KeyType;
 import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.screen.TerminalScreen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
@@ -21,6 +22,9 @@ public class Starfall {
     private TextGraphics textGraphics;
     private int playerX = 10;
     private int playerY = 10;
+    /* Coords to reset to when exiting */
+    int enterX = 0;
+    int enterY = 0;
     private int terminalHeight;
     private int terminalWidth;
 
@@ -45,8 +49,6 @@ public class Starfall {
     public void run() throws IOException {
         /* Draw the main menu */
         UI.mainMenu();
-        System.out.println(terminalWidth);
-        System.out.println(terminalHeight);
 
         /* Start game on key press */
         screen.readInput();
@@ -75,7 +77,30 @@ public class Starfall {
                 playerY = coords[1];
             }
 
-            /* Check if player can enter */
+            /*
+             * Check if player can enter
+             * if spacebar pressed and on valid enter tile, change map[][] to the file named
+             * by the enter coords
+             * For example, a ship on 23,13 had a map named 23,13.txt
+             */
+            KeyType keyType = keyStroke.getKeyType();
+
+            if ((keyType == KeyType.Character && keyStroke.getCharacter() == ' ')
+                    && Player.canEnter(map, playerX, playerY)) {
+
+                enterX = playerX;
+                enterY = playerY;
+
+                map = UI.map(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)));
+
+                /* For exiting rooms back to the main map */
+            } else if ((keyType == KeyType.Character && keyStroke.getCharacter() == ' ')
+                    && Player.canExit(map, playerX, playerY)) {
+                map = UI.map(Paths.get("txt", "map.txt"));
+                playerX = enterX;
+                playerY = enterY;
+            }
+
             /* Update terminal sizes */
             screen.doResizeIfNecessary();
             terminalHeight = screen.getTerminalSize().getRows();

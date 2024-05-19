@@ -48,9 +48,10 @@ public class UI {
    * creates a 2d array from a map file
    * 
    * @param map the filepath to use
-   * @return map[][]
+   * @return a 2d array of map data
+   * @throws IOException all hope is lost
    */
-  public static char[][] map(Path path) {
+  public static char[][] map(Path path) throws IOException {
     Methods.clearScreen();
 
     var rows = new ArrayList<char[]>();
@@ -60,9 +61,6 @@ public class UI {
       while ((line = in.readLine()) != null) { // runs until there are no more lines
         rows.add(line.toCharArray()); // rows contains a char[] for each line
       }
-    } catch (IOException e) {
-      System.out.println("An error occurred.");
-      e.printStackTrace();
     }
 
     /* Turn each char[] from rows into a row in map[][] */

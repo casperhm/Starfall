@@ -18,6 +18,9 @@ public class Player {
     private static final Set<Character> ENTER = Collections
             .unmodifiableSet(new HashSet<>(Arrays.asList('*', 'O', '~')));
 
+    /* ENTER collision layer - player can exit rooms here */
+    private static final Set<Character> EXIT = Collections.unmodifiableSet(new HashSet<>(Arrays.asList('0')));
+
     /**
      * Move
      * 
@@ -120,6 +123,22 @@ public class Player {
     public static boolean canEnter(char[][] map, int playerX, int playerY) {
         /* Check if the tile player is trynig to move to is in ENTER */
         return ENTER.contains(map[playerY][playerX]);
+
+    }
+
+    /**
+     * canExit
+     * 
+     * Checks if a tile is part of the EXIT set ; if it can be exited from
+     * 
+     * @param map     the map[][] to check
+     * @param playerX the x coordinate to check
+     * @param playerY the y coordinate to check
+     * @return true / false
+     */
+    public static boolean canExit(char[][] map, int playerX, int playerY) {
+        /* Check if the tile player is trynig to move to is in ENTER */
+        return EXIT.contains(map[playerY][playerX]);
 
     }
 
