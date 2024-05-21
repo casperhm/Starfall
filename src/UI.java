@@ -122,13 +122,13 @@ public class UI {
     }
 
     for (int i = 1; i < terminalWidth - INFO_RIGHT_OFFSET; i++) {
-      textGraphics.setCharacter(i, terminalHeight - 7, '═');
+      textGraphics.setCharacter(i, terminalHeight - MESSAGE_BOTTOM_OFFSET, '═');
     }
 
     /* Panels */
     textGraphics.setCharacter(terminalWidth - INFO_RIGHT_OFFSET, 0, '╦');
     textGraphics.setCharacter(terminalWidth - INFO_RIGHT_OFFSET, terminalHeight - 1, '╩');
-    textGraphics.setCharacter(terminalWidth - INFO_RIGHT_OFFSET, terminalHeight - 7, '╣');
+    textGraphics.setCharacter(terminalWidth - INFO_RIGHT_OFFSET, terminalHeight - MESSAGE_BOTTOM_OFFSET, '╣');
     textGraphics.setCharacter(0, terminalHeight - MESSAGE_BOTTOM_OFFSET, '╠');
   }
 }
