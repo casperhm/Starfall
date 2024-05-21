@@ -10,10 +10,18 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+
+import com.googlecode.lanterna.graphics.TextGraphics;
+import com.googlecode.lanterna.screen.Screen;
+import com.googlecode.lanterna.terminal.IOSafeTerminalAdapter;
+
 import java.nio.file.Paths;
 import java.nio.file.Path;
 
 public class UI {
+
+  public static final int INFO_RIGHT_OFFSET = 20;
+  public static final int MESSAGE_BOTTOM_OFFSET = 7;
 
   public static void main(String[] args) {
 
@@ -70,5 +78,57 @@ public class UI {
       map[i] = rows.get(i);
     }
     return map;
+  }
+
+  /**
+   * inventorys draws a box around the edge of the map with two panels, one on the
+   * right and one on the bottom
+   * 
+   * @param screen         all of these are just to pass in the laterna classes
+   *                       that are defined in Starfall
+   * @param textGraphics
+   * @param terminalWidth
+   * @param terminalHeight
+   * @throws IOException
+   */
+  public static void inventory(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight)
+      throws IOException {
+
+    /* Corners */
+    textGraphics.setCharacter(0, 0, '╔');
+    textGraphics.setCharacter(0, terminalHeight - 1, '╚');
+    textGraphics.setCharacter(terminalWidth - 1, 0, '╗');
+    textGraphics.setCharacter(terminalWidth - 1, terminalHeight - 1, '╝');
+
+    /* Longs */
+    for (int i = 1; i < terminalWidth - 1; i++) {
+      textGraphics.setCharacter(i, 0, '═');
+    }
+
+    for (int i = 1; i < terminalHeight - 1; i++) {
+      textGraphics.setCharacter(0, i, '║');
+    }
+
+    for (int i = 1; i < terminalHeight - 1; i++) {
+      textGraphics.setCharacter(terminalWidth - 1, i, '║');
+    }
+
+    for (int i = 1; i < terminalWidth - 1; i++) {
+      textGraphics.setCharacter(i, terminalHeight - 1, '═');
+    }
+
+    for (int i = 1; i < terminalHeight - 1; i++) {
+      textGraphics.setCharacter(terminalWidth - INFO_RIGHT_OFFSET, i, '║');
+    }
+
+    for (int i = 1; i < terminalWidth - INFO_RIGHT_OFFSET; i++) {
+      textGraphics.setCharacter(i, terminalHeight - 7, '═');
+    }
+
+    /* Panels */
+    textGraphics.setCharacter(terminalWidth - INFO_RIGHT_OFFSET, 0, '╦');
+    textGraphics.setCharacter(terminalWidth - INFO_RIGHT_OFFSET, terminalHeight - 1, '╩');
+    textGraphics.setCharacter(terminalWidth - INFO_RIGHT_OFFSET, terminalHeight - 7, '╣');
+    textGraphics.setCharacter(0, terminalHeight - MESSAGE_BOTTOM_OFFSET, '╠');
   }
 }

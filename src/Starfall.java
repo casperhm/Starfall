@@ -60,6 +60,7 @@ public class Starfall {
 
         /* Draw the map */
         drawMap(map);
+        UI.inventory(screen, textGraphics, terminalWidth, terminalHeight);
         screen.refresh();
 
         /* This is the main game loop */
@@ -115,8 +116,10 @@ public class Starfall {
             screen.doResizeIfNecessary();
             terminalHeight = screen.getTerminalSize().getRows();
             terminalWidth = screen.getTerminalSize().getColumns();
+            screen.clear();
 
             drawMap(map);
+            UI.inventory(screen, textGraphics, terminalWidth, terminalHeight);
 
             screen.refresh();
         }
@@ -129,6 +132,9 @@ public class Starfall {
      * @param map the map to be drawn
      */
     private void drawMap(char[][] map) {
+        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
+        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
+
         /*
          * The game map is divided into quadrants, sized to the terminal window
          * 
@@ -137,8 +143,8 @@ public class Starfall {
          * 
          * (quadrants start at quadX 0 and qaudY 0)
          */
-        int quadX = playerX / terminalWidth;
-        int quadY = playerY / terminalHeight;
+        int quadX = playerX / panelWidth;
+        int quadY = playerY / panelHeight;
 
         /*
          * Map origin is for calculating the top left point of each qaudrant
@@ -146,8 +152,8 @@ public class Starfall {
          * For example in quadrant 2, the mapOriginX would be 200 - (assuming a
          * terminalWidth of 100)
          */
-        int mapOriginX = quadX * terminalWidth;
-        int mapOriginY = quadY * terminalHeight;
+        int mapOriginX = quadX * panelWidth;
+        int mapOriginY = quadY * panelHeight;
 
         /*
          * Print the map
@@ -158,8 +164,8 @@ public class Starfall {
          * row < mapOriginY + terminalHeight ; col < mapOriginX + terminalWidth ; this
          * stops the printing when it reaches the bottom right point of the quadrant
          */
-        for (int row = mapOriginY; row < mapOriginY + terminalHeight; row++) {
-            for (int col = mapOriginX; col < mapOriginX + terminalWidth; col++) {
+        for (int row = mapOriginY; row < mapOriginY + panelHeight; row++) {
+            for (int col = mapOriginX; col < mapOriginX + panelWidth; col++) {
 
                 /*
                  * Draw coords are to get the coorect coordinate to modify relative to the
@@ -174,8 +180,8 @@ public class Starfall {
                  * This enables the text to print at the 50 index, even though its orginal point
                  * in the map is 150, or 250, etc.
                  */
-                int drawX = col - mapOriginX;
-                int drawY = row - mapOriginY;
+                int drawX = col - mapOriginX + 1;
+                int drawY = row - mapOriginY + 1;
 
                 /*
                  * This ensures that when a quadrant cannot fill the terminal width, for example
