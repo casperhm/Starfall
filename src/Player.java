@@ -21,6 +21,9 @@ public class Player {
     /* ENTER collision layer - player can exit rooms here */
     private static final Set<Character> EXIT = Collections.unmodifiableSet(new HashSet<>(Arrays.asList('0')));
 
+    /* OPEN collision layer - player can open these - probably a chest */
+    private static final Set<Character> OPEN = Collections.unmodifiableSet(new HashSet<>(Arrays.asList('=', '♥')));
+
     /**
      * Move
      * 
@@ -137,9 +140,47 @@ public class Player {
      * @return true / false
      */
     public static boolean canExit(char[][] map, int playerX, int playerY) {
-        /* Check if the tile player is trynig to move to is in ENTER */
+        /* Check if the tile player is trynig to move to is in EXIT */
         return EXIT.contains(map[playerY][playerX]);
 
     }
 
+    /**
+     * canOpen
+     * 
+     * Checks if a tile is part of the OPEN set ; if it can be opened - a chest most
+     * likely
+     * 
+     * @param map       the map[][] to check
+     * @param playerX   the x coordinate to check
+     * @param playerY   the y coordinate to check
+     * @param chestData for checking if chests have been opened or not ; true is
+     *                  cant
+     *                  open false is can
+     * @return true / false
+     */
+    public static boolean canOpen(char[][] map, int playerX, int playerY, boolean[][] chestData) {
+        /*
+         * Check if the tile player is trynig to move to is in OPEN and the chest hasint
+         * already been opened
+         */
+        if (!chestData[playerY][playerX] && OPEN.contains(map[playerY][playerX])) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * openChest
+     * increases coins on chest open
+     * 
+     * @param coins current coins
+     * @return new coins
+     */
+    public static int openChest(int coins) {
+        double coinsFound = Math.random() * 50;
+        coins += (int) coinsFound;
+        return coins;
+    }
 }

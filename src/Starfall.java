@@ -5,6 +5,9 @@
  */
 
 /* Laterna imports */
+import com.googlecode.lanterna.SGR;
+import com.googlecode.lanterna.TextCharacter;
+import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
@@ -22,11 +25,16 @@ public class Starfall {
     private TextGraphics textGraphics;
     private int playerX = 10;
     private int playerY = 10;
-    /* Coords to reset to when exiting */
     int enterX = 0;
     int enterY = 0;
     private int terminalHeight;
     private int terminalWidth;
+
+    /* Player Stats */
+    int health = 5;
+    int maxHealth = 15;
+    private final int capHealth = 32;
+    int coins = 0;
 
     /**
      * Create a new game instance
@@ -58,9 +66,12 @@ public class Starfall {
         /* Create the map array from map.txt */
         char[][] map = UI.map(Paths.get("txt", "map.txt"));
 
+        boolean[][] chestData = new boolean[map.length][map[0].length]; // for checking if chests have been opened or
+                                                                        // not
+
         /* Draw the map */
-        drawMap(map);
-        UI.inventory(screen, textGraphics, terminalWidth, terminalHeight);
+        drawMap(map, chestData);
+        UI.drawInventory(screen, textGraphics, terminalWidth, terminalHeight, health, maxHealth, coins);
         screen.refresh();
 
         /* This is the main game loop */
@@ -93,6 +104,7 @@ public class Starfall {
                 enterY = playerY;
 
                 map = UI.map(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)));
+                chestData = new boolean[map.length][map[0].length]; // for checking if chests have been opened or not
 
                 /* Find where the entrance is in the map */
                 for (int row = 0; row < map.length; row++) {
@@ -112,14 +124,35 @@ public class Starfall {
                 playerY = enterY;
             }
 
+            /* For openning chests */
+            if (Player.canOpen(map, playerX, playerY, chestData)
+                    && (keyType == KeyType.Character && keyStroke.getCharacter() == ' ')) {
+
+                /* Find out what kind of chest it is */
+                if (map[playerY][playerX] == '=') {
+                    /* Coin chest */
+                    coins = Player.openChest(coins);
+                    chestData[playerY][playerX] = true; // chest has been opened
+                } else if (map[playerY][playerX] == '♥') {
+                    /* Heart chest */
+                    if (maxHealth < capHealth) {
+                        maxHealth++;
+                    }
+                    /* Heal player fully */
+                    health = maxHealth;
+                    chestData[playerY][playerX] = true;
+                }
+
+            }
+
             /* Update terminal sizes */
             screen.doResizeIfNecessary();
             terminalHeight = screen.getTerminalSize().getRows();
             terminalWidth = screen.getTerminalSize().getColumns();
             screen.clear();
 
-            drawMap(map);
-            UI.inventory(screen, textGraphics, terminalWidth, terminalHeight);
+            drawMap(map, chestData);
+            UI.drawInventory(screen, textGraphics, terminalWidth, terminalHeight, health, maxHealth, coins);
 
             screen.refresh();
         }
@@ -129,9 +162,11 @@ public class Starfall {
      * drawMap
      * Calculates player quadrant and draws parts of the map accordingly
      * 
-     * @param map the map to be drawn
+     * @param map       the map to be drawn
+     * @param chestData for drawing chests diffrently based on if they have been
+     *                  opened or not
      */
-    private void drawMap(char[][] map) {
+    private void drawMap(char[][] map, boolean[][] chestData) {
         final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
         final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
 
@@ -188,11 +223,38 @@ public class Starfall {
                  * the last quadrant to the right, it stops printing before the game crashes
                  */
                 if (row < map.length && col < map[row].length) {
-
-                    /* Print player token if correct coords */
+                    /*
+                     * Print the map
+                     * Each of these if for printing tiles in a diffrent color
+                     */
                     if (playerY == row && playerX == col) {
+                        /* If its the player */
+                        textGraphics.setForegroundColor(TextColor.ANSI.GREEN_BRIGHT);
                         textGraphics.setCharacter(drawX, drawY, '@');
+                    } else if (map[row][col] == '=') {
+                        /* If its a chest */
+                        if (!chestData[row][col]) {
+                            /* Chest not opened */
+                            textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+                            textGraphics.setCharacter(drawX, drawY, '=');
+                        } else {
+                            /* Chest has been opened */
+                            textGraphics.setForegroundColor(TextColor.ANSI.BLACK);
+                            textGraphics.setCharacter(drawX, drawY, '=');
+                        }
+                    } else if (map[row][col] == '♥') {
+                        if (!chestData[row][col]) {
+                            /* Heart still here */
+                            textGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT);
+                            textGraphics.setCharacter(drawX, drawY, '♥');
+                        } else {
+                            /* Heart has been taken */
+                            textGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT);
+                            textGraphics.setCharacter(drawX, drawY, '♡');
+                        }
                     } else {
+                        /* Just a normal tile */
+                        textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
                         textGraphics.setCharacter(drawX, drawY, map[row][col]);
                     }
                 } else {

@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
+import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.terminal.IOSafeTerminalAdapter;
@@ -81,19 +82,25 @@ public class UI {
   }
 
   /**
-   * inventorys draws a box around the edge of the map with two panels, one on the
-   * right and one on the bottom
+   * inventorys draws things like the borders and panels, the hearts, coins, etc
+   * not a lot of comments in this mehtod as its mostly just printing to the
+   * screen not a lot of logic going on.
    * 
    * @param screen         all of these are just to pass in the laterna classes
    *                       that are defined in Starfall
    * @param textGraphics
    * @param terminalWidth
    * @param terminalHeight
+   * @param health         the players current health
+   * @param maxHealth      the player maximum health
+   * @param coins          the players current coins
    * @throws IOException
    */
-  public static void inventory(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight)
+  public static void drawInventory(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight,
+      int health, int maxHealth, int coins)
       throws IOException {
 
+    /* Draw Borders */
     /* Corners */
     textGraphics.setCharacter(0, 0, '╔');
     textGraphics.setCharacter(0, terminalHeight - 1, '╚');
@@ -130,5 +137,29 @@ public class UI {
     textGraphics.setCharacter(terminalWidth - INFO_RIGHT_OFFSET, terminalHeight - 1, '╩');
     textGraphics.setCharacter(terminalWidth - INFO_RIGHT_OFFSET, terminalHeight - MESSAGE_BOTTOM_OFFSET, '╣');
     textGraphics.setCharacter(0, terminalHeight - MESSAGE_BOTTOM_OFFSET, '╠');
+
+    /* Draw hearts */
+    textGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT);
+    textGraphics.putString(terminalWidth - 18, 2, "HEALTH");
+    int heartCount = 0;
+
+    for (int row = 4; row < terminalWidth - 2; row++) {
+      for (int col = 2; col < 18; col++) {
+        if (heartCount < maxHealth) {
+          if (heartCount < health) {
+            textGraphics.setCharacter(terminalWidth - INFO_RIGHT_OFFSET + col, row, '♥');
+            heartCount++;
+          } else {
+            textGraphics.setCharacter(terminalWidth - INFO_RIGHT_OFFSET + col, row, '♡');
+            heartCount++;
+          }
+        }
+      }
+    }
+
+    /* Draw coins */
+    textGraphics.setForegroundColor(TextColor.ANSI.YELLOW_BRIGHT);
+    textGraphics.putString(terminalWidth - 18, 7, String.format("COINS: %d ⛁", coins));
+
   }
 }
