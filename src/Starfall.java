@@ -4,7 +4,6 @@
  * Author: Casper Hillyer Magoffin
  */
 
-/* Laterna imports */
 import com.googlecode.lanterna.SGR;
 import com.googlecode.lanterna.TextCharacter;
 import com.googlecode.lanterna.TextColor;
@@ -15,9 +14,12 @@ import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.screen.TerminalScreen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
 import com.googlecode.lanterna.terminal.Terminal;
-
-import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
+import java.nio.file.Path;
+import java.io.IOException;
 
 public class Starfall {
     private final Screen screen;
@@ -35,6 +37,11 @@ public class Starfall {
     int maxHealth = 15;
     private final int capHealth = 32;
     int coins = 0;
+
+    boolean fighting = false;
+    int enemyNum = 0;
+
+    static final SecureRandom random = new SecureRandom(); // for random ints
 
     /**
      * Create a new game instance
@@ -65,13 +72,17 @@ public class Starfall {
 
         /* Create the map array from map.txt */
         char[][] map = UI.map(Paths.get("txt", "map.txt"));
-
         boolean[][] chestData = new boolean[map.length][map[0].length]; // for checking if chests have been opened or
                                                                         // not
+
+        /* Get the map message */
+        String message = UI.getMapMessage(Paths.get("txt", "map.txt"));
 
         /* Draw the map */
         drawMap(map, chestData);
         UI.drawInventory(screen, textGraphics, terminalWidth, terminalHeight, health, maxHealth, coins);
+        textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+        UI.print(message, terminalWidth, terminalHeight, textGraphics);
         screen.refresh();
 
         /* This is the main game loop */
@@ -84,9 +95,26 @@ public class Starfall {
              * Update positions from Player.move, but only if it is a valid position ; (not
              * blocked by walls)
              */
-            if (Player.canMove(map, coords[0], coords[1])) {
+            if (Player.canMove(map, coords[0], coords[1]) && !fighting) {
                 playerX = coords[0];
                 playerY = coords[1];
+
+                /*
+                 * Fighting
+                 * You have a chance to be attacked by an enemy ship each time you move. this
+                 * starts at 0 and moves up based on xp and area
+                 */
+                double fightChance = Math.random() * 10;
+
+                if (fightChance > 5 && !fighting) {
+                    fighting = true;
+
+                    enemyNum = random.nextInt(0, 3);
+
+                    /* Set the map to a blank background */
+                    map = UI.map(Paths.get("txt", "fightMap.txt"));
+                    screen.refresh();
+                }
             }
 
             /*
@@ -104,14 +132,17 @@ public class Starfall {
                 enterY = playerY;
 
                 map = UI.map(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)));
+                message = UI.getMapMessage(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)));
+                textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+                UI.print(message, terminalWidth, terminalHeight, textGraphics);
                 chestData = new boolean[map.length][map[0].length]; // for checking if chests have been opened or not
 
                 /* Find where the entrance is in the map */
                 for (int row = 0; row < map.length; row++) {
                     for (int col = 0; col < map[0].length; col++) {
                         if (map[row][col] == '0') {
-                            playerX = row;
-                            playerY = col;
+                            playerY = row;
+                            playerX = col;
                         }
                     }
                 }
@@ -120,6 +151,9 @@ public class Starfall {
             } else if ((keyType == KeyType.Character && keyStroke.getCharacter() == ' ')
                     && Player.canExit(map, playerX, playerY)) {
                 map = UI.map(Paths.get("txt", "map.txt"));
+                message = UI.getMapMessage(Paths.get("txt", "map.txt"));
+                textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+                UI.print(message, terminalWidth, terminalHeight, textGraphics);
                 playerX = enterX;
                 playerY = enterY;
             }
@@ -149,10 +183,25 @@ public class Starfall {
             screen.doResizeIfNecessary();
             terminalHeight = screen.getTerminalSize().getRows();
             terminalWidth = screen.getTerminalSize().getColumns();
-            screen.clear();
 
-            drawMap(map, chestData);
+            /* Draw UI */
+            screen.clear();
             UI.drawInventory(screen, textGraphics, terminalWidth, terminalHeight, health, maxHealth, coins);
+            textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+            UI.print(message, terminalWidth, terminalHeight, textGraphics);
+
+            /* Draw the game panel */
+            if (!fighting) {
+                drawMap(map, chestData);
+            } else {
+                /* Fight message */
+                message = UI.getMapMessage(Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
+                textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+
+                UI.print(message, terminalWidth, terminalHeight, textGraphics);
+                World.fight(screen, textGraphics, terminalWidth, terminalHeight,
+                        Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
+            }
 
             screen.refresh();
         }

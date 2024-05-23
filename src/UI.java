@@ -67,13 +67,18 @@ public class UI {
     var rows = new ArrayList<char[]>();
 
     try (var in = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+      in.readLine(); // skip the first line
+
       String line = null;
       while ((line = in.readLine()) != null) { // runs until there are no more lines
         rows.add(line.toCharArray()); // rows contains a char[] for each line
       }
     }
 
-    /* Turn each char[] from rows into a row in map[][] */
+    /*
+     * Turn each char[] from rows into a row in map[][], exept the first one which
+     * is an information line
+     */
     var map = new char[rows.size()][];
     for (int i = 0; i < map.length; i++) {
       map[i] = rows.get(i);
@@ -160,6 +165,36 @@ public class UI {
     /* Draw coins */
     textGraphics.setForegroundColor(TextColor.ANSI.YELLOW_BRIGHT);
     textGraphics.putString(terminalWidth - 18, 7, String.format("COINS: %d ⛁", coins));
+  }
 
+  /**
+   * print
+   * just to make printing to the message window a tiny bit quicker
+   * 
+   * @param message        the message to print
+   * @param terminalWdith  positions for printing
+   * @param terminalHeight
+   * @param textGraphics   need this
+   */
+  public static void print(String message, int terminalWdith, int terminalHeight, TextGraphics textGraphics) {
+    textGraphics.putString(2, terminalHeight - 4, message);
+  }
+
+  /**
+   * getMapMessage
+   * gets the first line of the map file, this is where a message is stored
+   * 
+   * @param path the map file to use
+   * @return the message
+   * @throws IOException
+   */
+  public static String getMapMessage(Path path) throws IOException {
+    String message;
+
+    try (var in = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+      message = in.readLine(); // read the first line
+    }
+
+    return message;
   }
 }
