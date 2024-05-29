@@ -4,9 +4,14 @@
  * Author: Casper Hillyer Magoffin
  */
 
+import java.io.IOException;
 import java.util.*;
+
+import com.googlecode.lanterna.TextColor;
+import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
+import com.googlecode.lanterna.screen.Screen;
 
 public class Player {
 
@@ -182,5 +187,135 @@ public class Player {
         double coinsFound = Math.random() * 50;
         coins += (int) coinsFound;
         return coins;
+    }
+
+    public static void shootLaser(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight) {
+        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
+        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
+        int x = panelWidth - 18;
+
+        /*
+         * Determine the angle of the laser
+         */
+        double laserTarget = panelWidth - (panelWidth * 0.9); // where the laser will end
+        double laserStart = panelWidth - 18;// starts at the ship
+        double laserAngle = (laserStart - laserTarget) / panelHeight;
+
+        /* Print the laser */
+        textGraphics.setForegroundColor(TextColor.ANSI.CYAN_BRIGHT);
+        for (int y = panelHeight - 3; y > 0; y--) {
+            textGraphics.putString(x, y, "-_-");
+            try {
+                screen.refresh();
+                try {
+                    Thread.sleep(20);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            } catch (IOException e) {
+                // nothign
+            }
+            x -= laserAngle;
+        }
+
+        /* Remove the laser */
+        x = panelWidth - 18;
+
+        for (int y = panelHeight - 3; y > 0; y--) {
+            textGraphics.putString(x, y, "   ");
+            try {
+                screen.refresh();
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            } catch (IOException e) {
+                // nothign
+            }
+            x -= laserAngle;
+        }
+
+        textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+    }
+
+    public static void shootCannon(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight) {
+        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
+        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
+        int x = panelWidth - 18;
+
+        /*
+         * Determine the angle of the cannon blast
+         */
+        double cannonTarget = panelWidth - (panelWidth * 0.9); // where the laser will end
+        double cannonStart = panelWidth - 18;// starts at the ship
+        double cannonAngle = (cannonStart - cannonTarget) / panelHeight;
+
+        /* Print the cannon */
+        textGraphics.setForegroundColor(TextColor.ANSI.BLACK_BRIGHT);
+
+        /* Print the smoke trail */
+        for (int y = panelHeight - 3; y > 6; y--) {
+            textGraphics.putString(x, y, ":::");
+            try {
+                screen.refresh();
+                try {
+                    Thread.sleep(20);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            } catch (IOException e) {
+                // nothign
+            }
+            x -= cannonAngle;
+        }
+
+        /* Print the explosion */
+        textGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT);
+
+        textGraphics.putString(16, 2, "..........");
+        textGraphics.putString(15, 3, ".OOOOOOOOOO.");
+        textGraphics.putString(14, 4, ".OOOOOOOOOOOO.");
+        textGraphics.putString(13, 5, ".OOOOOOOOOOOOOO.");
+        textGraphics.putString(13, 6, ".OOOOOOOOOOOOOO.");
+        textGraphics.putString(14, 7, ".OOOOOOOOOOOO.");
+        textGraphics.putString(15, 8, ".OOOOOOOOOO.");
+        textGraphics.putString(16, 9, "..........");
+
+        /* Remove the smoke trail */
+        x = panelWidth - 18;
+
+        for (int y = panelHeight - 3; y > 6; y--) {
+            textGraphics.putString(x, y, "   ");
+            try {
+                screen.refresh();
+                try {
+                    Thread.sleep(25);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            } catch (IOException e) {
+                // nothign
+            }
+            x -= cannonAngle;
+        }
+
+        /* Remove the explosion */
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+
+        textGraphics.putString(16, 2, "             ");
+        textGraphics.putString(15, 3, "                ");
+        textGraphics.putString(14, 4, "                ");
+        textGraphics.putString(13, 5, "                ");
+        textGraphics.putString(13, 6, "                ");
+        textGraphics.putString(14, 7, "                ");
+        textGraphics.putString(15, 8, "                 ");
+        textGraphics.putString(16, 9, "             ");
+
+        textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
     }
 }

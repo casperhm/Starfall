@@ -4,8 +4,6 @@
  * Author: Casper Hillyer Magoffin
  */
 
-import com.googlecode.lanterna.SGR;
-import com.googlecode.lanterna.TextCharacter;
 import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.input.KeyStroke;
@@ -14,11 +12,8 @@ import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.screen.TerminalScreen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
 import com.googlecode.lanterna.terminal.Terminal;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
-import java.nio.file.Path;
 import java.io.IOException;
 
 public class Starfall {
@@ -39,7 +34,7 @@ public class Starfall {
     int coins = 0;
 
     boolean fighting = false;
-    int enemyNum = 0;
+    int enemyNum = 1;
 
     static final SecureRandom random = new SecureRandom(); // for random ints
 
@@ -104,12 +99,12 @@ public class Starfall {
                  * You have a chance to be attacked by an enemy ship each time you move. this
                  * starts at 0 and moves up based on xp and area
                  */
-                double fightChance = Math.random() * 10;
+                double fightChance = Math.random() * 100;
 
-                if (fightChance > 5 && !fighting) {
+                if (fightChance > 1 && !fighting) {
                     fighting = true;
 
-                    enemyNum = random.nextInt(0, 3);
+                    // enemyNum = random.nextInt(0, 2);
 
                     /* Set the map to a blank background */
                     map = UI.map(Paths.get("txt", "fightMap.txt"));
@@ -194,17 +189,70 @@ public class Starfall {
             if (!fighting) {
                 drawMap(map, chestData);
             } else {
-                /* Fight message */
-                message = UI.getMapMessage(Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
-                textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
-
-                UI.print(message, terminalWidth, terminalHeight, textGraphics);
-                World.fight(screen, textGraphics, terminalWidth, terminalHeight,
-                        Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
+                fightLoop(keyStroke, enemyNum); // start the fight loop
             }
-
             screen.refresh();
         }
+    }
+
+    /**
+     * fightLoop
+     * 
+     * fightLoop is the combat system loop
+     * 
+     * @param keyStroke just to get the keyStroke object without casing a pause in
+     *                  the loop
+     * @throws IOException
+     */
+    private void fightLoop(KeyStroke keyStroke, int enemyNum) throws IOException {
+        int enemyHealth = 0;
+
+        switch (enemyNum) {
+            case 0:
+                enemyHealth = 100;
+                break;
+            case 1:
+                enemyHealth = 150;
+                break;
+            case 2:
+                enemyHealth = 70;
+        }
+        KeyType keyType = keyStroke.getKeyType();
+
+        /* Fight message */
+        String message = UI.getMapMessage(Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
+        textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+
+        /* Print fight UI */
+        UI.print(message, terminalWidth, terminalHeight, textGraphics);
+        World.fight(screen, textGraphics, terminalWidth, terminalHeight,
+                Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
+
+        screen.refresh();
+
+        /* Shoot weapon */
+        if (keyType == KeyType.Character && keyStroke.getCharacter() == 'z') {
+            Player.shootLaser(screen, textGraphics, terminalWidth, terminalHeight);
+        } else if (keyType == KeyType.Character && keyStroke.getCharacter() == 'x') {
+            Player.shootCannon(screen, textGraphics, terminalWidth, terminalHeight);
+        }
+
+        /* Reset the fight screen */
+        World.fight(screen, textGraphics, terminalWidth, terminalHeight,
+                Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+
+        /* Enemy shoot */
+        World.enemyAttack(enemyNum, screen, textGraphics, enemyNum, enemyHealth);
+
+        /* Reset the fight screen */
+        World.fight(screen, textGraphics, terminalWidth, terminalHeight,
+                Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
     }
 
     /**
