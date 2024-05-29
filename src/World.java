@@ -69,10 +69,13 @@ public class World {
                 damage = random.nextInt(5, 15);
                 /* Draw the bombs */
                 pirateBombs(screen, textGraphics, terminalWidth, terminalHeight);
-                /* Imperial trident */
+                break;
+
+            /* Imperial trident */
             case 1:
                 damage = random.nextInt(8, 12);
                 imperialLaser(screen, textGraphics, terminalWidth, terminalHeight);
+                break;
         }
         return damage;
     }
@@ -164,12 +167,25 @@ public class World {
         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
     }
 
+    /**
+     * imperialLaser
+     * 
+     * This will draw a laser going from the imperial trident to your ship.
+     * Most of the logic in here is to do with using trig to find what angle the
+     * laser needs to draw at.
+     * 
+     * @param screen         these just bring in needed objects and variables
+     * @param textGraphics
+     * @param terminalWidth
+     * @param terminalHeight
+     */
     public static void imperialLaser(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight) {
         terminalWidth = screen.getTerminalSize().getColumns();
         terminalHeight = screen.getTerminalSize().getRows();
         final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1; // adjacent
         final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1; // opposite
 
+        /* Calculate the laser triangle */
         double opposite = panelHeight - 6;
         double adjacent = panelWidth - 64;
 
@@ -182,7 +198,9 @@ public class World {
         int x = 52;
 
         textGraphics.setForegroundColor(TextColor.ANSI.GREEN_BRIGHT);
-        for (int y = 6; y < panelHeight; y += 0) {
+
+        /* Draw the laser segment */
+        for (int y = 6; y < panelHeight && x < panelWidth; y += 0) {
             textGraphics.putString(x, y, "\\\\");
             try {
                 screen.refresh();
@@ -195,6 +213,11 @@ public class World {
                 // nothign
             }
 
+            /*
+             * These are for making diffrent steepness in the laser
+             * For example, with a yPerCol of 0.3, the y draw would increment abuot 1/3
+             * loops, giving a steeper laser.
+             */
             if (yPerCol < 1) {
                 if (Math.random() < yPerCol) {
                     y++;

@@ -190,50 +190,59 @@ public class Player {
     }
 
     public static void shootLaser(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight) {
-        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
-        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
-        int x = panelWidth - 18;
+        terminalWidth = screen.getTerminalSize().getColumns();
+        terminalHeight = screen.getTerminalSize().getRows();
+        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1; // adjacent
+        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1; // opposite
 
-        /*
-         * Determine the angle of the laser
-         */
-        double laserTarget = panelWidth - (panelWidth * 0.9); // where the laser will end
-        double laserStart = panelWidth - 18;// starts at the ship
-        double laserAngle = (laserStart - laserTarget) / panelHeight;
+        /* Calculate the laser triangle */
+        double opposite = panelHeight - 3;
+        double adjacent = panelWidth - 10;
+
+        double angle = Math.tanh(opposite / adjacent);
+
+        double xPerCol = Math.cos(angle);
+        double yPerCol = Math.sin(angle);
 
         /* Print the laser */
+        int x = panelWidth - 18;
+
         textGraphics.setForegroundColor(TextColor.ANSI.CYAN_BRIGHT);
-        for (int y = panelHeight - 3; y > 0; y--) {
+
+        /* Draw the laser segment */
+        for (int y = panelHeight - 3; y > 0 && x > 0; y += 0) {
             textGraphics.putString(x, y, "-_-");
             try {
                 screen.refresh();
                 try {
-                    Thread.sleep(20);
+                    Thread.sleep(5);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                 }
             } catch (IOException e) {
                 // nothign
             }
-            x -= laserAngle;
-        }
 
-        /* Remove the laser */
-        x = panelWidth - 18;
-
-        for (int y = panelHeight - 3; y > 0; y--) {
-            textGraphics.putString(x, y, "   ");
-            try {
-                screen.refresh();
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
+            /*
+             * These are for making diffrent steepness in the laser
+             * For example, with a yPerCol of 0.3, the y draw would increment abuot 1/3
+             * loops, giving a steeper laser.
+             */
+            if (yPerCol < 1) {
+                if (Math.random() < yPerCol) {
+                    y--;
                 }
-            } catch (IOException e) {
-                // nothign
+            } else {
+                y -= yPerCol;
             }
-            x -= laserAngle;
+
+            if (xPerCol < 1) {
+                if (Math.random() < xPerCol) {
+                    x--;
+                }
+            } else {
+                x -= xPerCol;
+            }
         }
 
         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
