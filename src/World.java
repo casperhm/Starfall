@@ -83,7 +83,9 @@ public class World {
     /**
      * pirateBombs
      * 
-     * Draw the Bombs dropping on your ship
+     * Draw the Bombs dropping on your ship, works simliar to imperial laser but
+     * erases egemnts so only 1 appears on the screen at a time, also shoots 5 at
+     * once
      * 
      * @param screen         these are just needed to pass in terminal objects
      * @param textGraphics
@@ -94,75 +96,95 @@ public class World {
             int terminalHeight) {
         terminalWidth = screen.getTerminalSize().getColumns();
         terminalHeight = screen.getTerminalSize().getRows();
+        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1; // adjacent
+        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1; // opposite
 
-        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
-        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
+        /* Calculate the bomb path triangle */
+        double opposite = panelHeight - 11;
+        double adjacent = panelWidth - 33;
 
-        /* Chose bomb drop spots */
-        int bomb1x = random.nextInt(panelWidth - 18, panelWidth - 1);
-        int bomb2x = random.nextInt(panelWidth - 18, panelWidth - 1);
-        int bomb3x = random.nextInt(panelWidth - 18, panelWidth - 1);
-        int bomb4x = random.nextInt(panelWidth - 18, panelWidth - 1);
-        int bomb5x = random.nextInt(panelWidth - 18, panelWidth - 1);
+        double angle = Math.tanh(opposite / adjacent);
 
-        /* Connect the ship to the drop spots */
+        double xPerCol = Math.cos(angle);
+        double yPerCol = Math.sin(angle);
+
+        /* Print the bomb */
+        int x = 33;
+        int y = 11;
+
         textGraphics.setForegroundColor(TextColor.ANSI.YELLOW_BRIGHT);
 
-        for (int x = 58; x < panelWidth - 1; x++) {
-            textGraphics.setCharacter(x, 5, '~');
-            try {
-                screen.refresh();
-            } catch (IOException e) {
-                // do nothing
-            }
+        /* Draw the bombs */
+        for (y = 11; y < panelHeight - 5 && x < panelWidth - 5; y += 0) {
+            textGraphics.putString(x, y, "<O>");
+            textGraphics.putString(x - 8, y - 1, "<O>");
+            textGraphics.putString(x - 16, y - 2, "<O>");
+
+            /* Delete behind the bombs */
+            textGraphics.putString(x - 3, y - 1, "      ");
+            textGraphics.putString(x - 3, y, "   ");
+
+            textGraphics.putString(x - 8 - 3, y - 1 - 1, "      ");
+            textGraphics.putString(x - 8 - 3, y - 1, "   ");
+
+            textGraphics.putString(x - 16 - 3, y - 1 - 2, "      ");
+            textGraphics.putString(x - 16 - 3, y - 2, "   ");
 
             try {
-                Thread.sleep(20);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
+                screen.refresh();
+                try {
+                    Thread.sleep(15);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            } catch (IOException e) {
+                // nothign
+            }
+
+            /*
+             * These are for making diffrent steepness in the laser
+             * For example, with a yPerCol of 0.3, the y draw would increment abuot 1/3
+             * loops, giving a steeper laser.
+             */
+            if (yPerCol < 1) {
+                if (Math.random() < yPerCol) {
+                    y++;
+                }
+            } else {
+                y += yPerCol;
+            }
+
+            if (xPerCol < 1) {
+                if (Math.random() < xPerCol) {
+                    x++;
+                }
+            } else {
+                x += xPerCol;
             }
         }
 
-        /* Bring the bombs down */
-        for (int y = 6; y < panelHeight - 5; y++) {
-            textGraphics.putString(bomb1x, y, "[O]");
-            textGraphics.putString(bomb2x, y, "[O]");
-            textGraphics.putString(bomb3x, y, "[O]");
-            textGraphics.putString(bomb4x, y, "[O]");
-            textGraphics.putString(bomb5x, y, "[O]");
+        /* Print the explosions */
 
-            try {
-                screen.refresh();
-            } catch (IOException e) {
-                // do nothing
-            }
+        /* Bomb 1 */
+        textGraphics.putString(x, y - 3, ".");
+        textGraphics.putString(x - 1, y - 2, ".:.");
+        textGraphics.putString(x - 2, y - 1, ".:::.");
+        textGraphics.putString(x - 1, y, ".:.");
+        textGraphics.putString(x, y + 1, ".");
 
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-            }
+        /* Bomb 2 */
+        textGraphics.putString(x - 8, y - 4, ".");
+        textGraphics.putString(x - 8 - 1, y - 3, ".:.");
+        textGraphics.putString(x - 8 - 2, y - 2, ".:::.");
+        textGraphics.putString(x - 8 - 1, y - 1, ".:.");
+        textGraphics.putString(x - 8, y, ".");
 
-            textGraphics.putString(bomb1x, y, "   ");
-            textGraphics.putString(bomb2x, y, "   ");
-            textGraphics.putString(bomb3x, y, "   ");
-            textGraphics.putString(bomb4x, y, "   ");
-            textGraphics.putString(bomb5x, y, "   ");
-
-            try {
-                screen.refresh();
-            } catch (IOException e) {
-                // do nothing
-            }
-        }
-
-        /* Debris */
-        textGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT);
-        textGraphics.putString(bomb1x, panelHeight - 5, ".:.");
-        textGraphics.putString(bomb2x, panelHeight - 5, ".:.");
-        textGraphics.putString(bomb3x, panelHeight - 5, ".:.");
-        textGraphics.putString(bomb4x, panelHeight - 5, ".:.");
-        textGraphics.putString(bomb5x, panelHeight - 5, ".:.");
+        /* Bomb 2 */
+        textGraphics.putString(x - 16, y - 5, ".");
+        textGraphics.putString(x - 16 - 1, y - 4, ".:.");
+        textGraphics.putString(x - 16 - 2, y - 3, ".:::.");
+        textGraphics.putString(x - 16 - 1, y - 2, ".:.");
+        textGraphics.putString(x - 16, y - 1, ".");
 
         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
     }

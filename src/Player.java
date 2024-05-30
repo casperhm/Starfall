@@ -189,6 +189,16 @@ public class Player {
         return coins;
     }
 
+    /**
+     * Shoots a laser from the player ship to the enmy ship
+     * 
+     * Basicly the same method as World.imperialLaser
+     * 
+     * @param screen
+     * @param textGraphics
+     * @param terminalWidth
+     * @param terminalHeight
+     */
     public static void shootLaser(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight) {
         terminalWidth = screen.getTerminalSize().getColumns();
         terminalHeight = screen.getTerminalSize().getRows();
@@ -248,82 +258,84 @@ public class Player {
         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
     }
 
+    /**
+     * Shoots a smoke trail followed by an explosion from the player ship
+     * 
+     * The same as Player.shootLaser but with an explosion added at the end
+     * 
+     * @param screen
+     * @param textGraphics
+     * @param terminalWidth
+     * @param terminalHeight
+     */
     public static void shootCannon(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight) {
-        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
-        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
-        int x = panelWidth - 18;
+        terminalWidth = screen.getTerminalSize().getColumns();
+        terminalHeight = screen.getTerminalSize().getRows();
+        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1; // adjacent
+        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1; // opposite
 
-        /*
-         * Determine the angle of the cannon blast
-         */
-        double cannonTarget = panelWidth - (panelWidth * 0.9); // where the laser will end
-        double cannonStart = panelWidth - 18;// starts at the ship
-        double cannonAngle = (cannonStart - cannonTarget) / panelHeight;
+        /* Calculate the smoke triangle */
+        double opposite = panelHeight - 3;
+        double adjacent = panelWidth - 10;
 
-        /* Print the cannon */
-        textGraphics.setForegroundColor(TextColor.ANSI.BLACK_BRIGHT);
+        double angle = Math.tanh(opposite / adjacent);
+
+        double xPerCol = Math.cos(angle);
+        double yPerCol = Math.sin(angle);
 
         /* Print the smoke trail */
-        for (int y = panelHeight - 3; y > 6; y--) {
+        int x = panelWidth - 18;
+        int y = 0;
+
+        textGraphics.setForegroundColor(TextColor.ANSI.BLACK_BRIGHT);
+
+        /* Draw the smoke segment */
+        for (y = panelHeight - 3; y > 5 && x > 5; y += 0) {
             textGraphics.putString(x, y, ":::");
             try {
                 screen.refresh();
                 try {
-                    Thread.sleep(20);
+                    Thread.sleep(10);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                 }
             } catch (IOException e) {
                 // nothign
             }
-            x -= cannonAngle;
+
+            /*
+             * These are for making diffrent steepness in the smoke
+             * For example, with a yPerCol of 0.3, the y draw would increment abuot 1/3
+             * loops, giving a steeper smoke.
+             */
+            if (yPerCol < 1) {
+                if (Math.random() < yPerCol) {
+                    y--;
+                }
+            } else {
+                y -= yPerCol;
+            }
+
+            if (xPerCol < 1) {
+                if (Math.random() < xPerCol) {
+                    x--;
+                }
+            } else {
+                x -= xPerCol;
+            }
         }
 
         /* Print the explosion */
         textGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT);
 
-        textGraphics.putString(16, 2, "..........");
-        textGraphics.putString(15, 3, ".OOOOOOOOOO.");
-        textGraphics.putString(14, 4, ".OOOOOOOOOOOO.");
-        textGraphics.putString(13, 5, ".OOOOOOOOOOOOOO.");
-        textGraphics.putString(13, 6, ".OOOOOOOOOOOOOO.");
-        textGraphics.putString(14, 7, ".OOOOOOOOOOOO.");
-        textGraphics.putString(15, 8, ".OOOOOOOOOO.");
-        textGraphics.putString(16, 9, "..........");
-
-        /* Remove the smoke trail */
-        x = panelWidth - 18;
-
-        for (int y = panelHeight - 3; y > 6; y--) {
-            textGraphics.putString(x, y, "   ");
-            try {
-                screen.refresh();
-                try {
-                    Thread.sleep(25);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                }
-            } catch (IOException e) {
-                // nothign
-            }
-            x -= cannonAngle;
-        }
-
-        /* Remove the explosion */
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-        }
-
-        textGraphics.putString(16, 2, "             ");
-        textGraphics.putString(15, 3, "                ");
-        textGraphics.putString(14, 4, "                ");
-        textGraphics.putString(13, 5, "                ");
-        textGraphics.putString(13, 6, "                ");
-        textGraphics.putString(14, 7, "                ");
-        textGraphics.putString(15, 8, "                 ");
-        textGraphics.putString(16, 9, "             ");
+        textGraphics.putString(x, y, "..........");
+        textGraphics.putString(x - 1, y + 1, ".OOOOOOOOOO.");
+        textGraphics.putString(x - 2, y + 2, ".OOOOOOOOOOOO.");
+        textGraphics.putString(x - 3, y + 3, ".OOOOOOOOOOOOOO.");
+        textGraphics.putString(x - 3, y + 4, ".OOOOOOOOOOOOOO.");
+        textGraphics.putString(x - 2, y + 4, ".OOOOOOOOOOOO.");
+        textGraphics.putString(x - 1, y + 5, ".OOOOOOOOOO.");
+        textGraphics.putString(x, y + 6, "..........");
 
         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
     }

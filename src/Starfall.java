@@ -34,7 +34,7 @@ public class Starfall {
     int coins = 0;
 
     boolean fighting = false;
-    int enemyNum = 1;
+    int enemyNum = 0;
 
     static final SecureRandom random = new SecureRandom(); // for random ints
 
@@ -104,7 +104,7 @@ public class Starfall {
                 if (fightChance > 1 && !fighting) {
                     fighting = true;
 
-                    // enemyNum = random.nextInt(0, 2);
+                    enemyNum = random.nextInt(0, 2);
 
                     /* Set the map to a blank background */
                     map = UI.map(Paths.get("txt", "fightMap.txt"));
@@ -237,22 +237,8 @@ public class Starfall {
             Player.shootCannon(screen, textGraphics, terminalWidth, terminalHeight);
         }
 
-        /* Reset the fight screen */
-        World.fight(screen, textGraphics, terminalWidth, terminalHeight,
-                Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
-
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-        }
-
         /* Enemy shoot */
         World.enemyAttack(enemyNum, screen, textGraphics, enemyNum, enemyHealth);
-
-        /* Reset the fight screen */
-        World.fight(screen, textGraphics, terminalWidth, terminalHeight,
-                Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
     }
 
     /**
