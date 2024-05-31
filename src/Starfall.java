@@ -28,13 +28,14 @@ public class Starfall {
     private int terminalWidth;
 
     /* Player Stats */
-    int health = 5;
-    int maxHealth = 15;
+    int health = 20;
+    int maxHealth = 20;
     private final int capHealth = 32;
     int coins = 0;
 
     boolean fighting = false;
     int enemyNum = 0;
+    int enemyHealth = 0;
 
     static final SecureRandom random = new SecureRandom(); // for random ints
 
@@ -57,8 +58,12 @@ public class Starfall {
      * @throws IOException
      */
     public void run() throws IOException {
+        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
+        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
+
         /* Draw the main menu */
-        UI.mainMenu();
+        UI.menuScreen(Paths.get("txt", "mainMenu.txt"), textGraphics, screen, terminalWidth, terminalHeight);
+        screen.refresh();
 
         /* Start game on key press */
         screen.readInput();
@@ -66,9 +71,10 @@ public class Starfall {
         /* Add story here in the future */
 
         /* Create the map array from map.txt */
-        char[][] map = UI.map(Paths.get("txt", "map.txt"));
+        char[][] map = UI.map(Paths.get("txt", "map.txt"), screen);
         boolean[][] chestData = new boolean[map.length][map[0].length]; // for checking if chests have been opened or
                                                                         // not
+        boolean onMainMap = true;
 
         /* Get the map message */
         String message = UI.getMapMessage(Paths.get("txt", "map.txt"));
@@ -84,6 +90,7 @@ public class Starfall {
         while (true) {
             /* Get player direction */
             KeyStroke keyStroke = screen.readInput();
+
             int coords[] = Player.move(keyStroke, playerX, playerY, map[0].length, map.length);
 
             /*
@@ -97,17 +104,33 @@ public class Starfall {
                 /*
                  * Fighting
                  * You have a chance to be attacked by an enemy ship each time you move. this
-                 * starts at 0 and moves up based on xp and area
+                 * starts at 0 and moves up based on xp and area - i havent added xp yet it is
+                 * just 1/50 for now
                  */
                 double fightChance = Math.random() * 100;
 
-                if (fightChance > 1 && !fighting) {
+                if (fightChance > 98 && !fighting && onMainMap) {
                     fighting = true;
 
-                    enemyNum = random.nextInt(0, 2);
+                    enemyNum = random.nextInt(0, 3);
+                    /* Get enemy health */
+                    switch (enemyNum) {
+                        case 0:
+                            enemyHealth = 150;
+                            break;
+                        case 1:
+                            enemyHealth = 120;
+                            break;
+                        case 2:
+                            enemyHealth = 70;
+                    }
 
-                    /* Set the map to a blank background */
-                    map = UI.map(Paths.get("txt", "fightMap.txt"));
+                    /* Clear the panel */
+                    for (int y = 1; y < panelHeight; y++) {
+                        for (int x = 1; x < panelWidth; x++) {
+                            textGraphics.putString(x, y, " ");
+                        }
+                    }
                     screen.refresh();
                 }
             }
@@ -126,7 +149,8 @@ public class Starfall {
                 enterX = playerX;
                 enterY = playerY;
 
-                map = UI.map(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)));
+                map = UI.map(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)), screen);
+                onMainMap = false;
                 message = UI.getMapMessage(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)));
                 textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
                 UI.print(message, terminalWidth, terminalHeight, textGraphics);
@@ -145,7 +169,8 @@ public class Starfall {
                 /* For exiting rooms back to the main map */
             } else if ((keyType == KeyType.Character && keyStroke.getCharacter() == ' ')
                     && Player.canExit(map, playerX, playerY)) {
-                map = UI.map(Paths.get("txt", "map.txt"));
+                map = UI.map(Paths.get("txt", "map.txt"), screen);
+                onMainMap = true;
                 message = UI.getMapMessage(Paths.get("txt", "map.txt"));
                 textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
                 UI.print(message, terminalWidth, terminalHeight, textGraphics);
@@ -192,6 +217,30 @@ public class Starfall {
                 fightLoop(keyStroke, enemyNum); // start the fight loop
             }
             screen.refresh();
+
+            /* Check for death */
+            if (health < 0) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+
+                textGraphics.setForegroundColor(TextColor.ANSI.RED);
+                UI.menuScreen(Paths.get("txt", "deathScreen.txt"), textGraphics, screen, terminalWidth, terminalHeight);
+                fighting = false;
+                screen.refresh();
+
+                /* Quit game */
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+
+                /* This will have to do until i make a save system */
+                System.exit(0);
+            }
         }
     }
 
@@ -205,23 +254,26 @@ public class Starfall {
      * @throws IOException
      */
     private void fightLoop(KeyStroke keyStroke, int enemyNum) throws IOException {
-        int enemyHealth = 0;
 
-        switch (enemyNum) {
-            case 0:
-                enemyHealth = 100;
-                break;
-            case 1:
-                enemyHealth = 150;
-                break;
-            case 2:
-                enemyHealth = 70;
-        }
+        /*
+         * The turn system is basicly jsut to make sure the enemy doesent shoot until
+         * the player has used a wepaon, not just pressed some random key by mistake
+         */
+        boolean playerTurn = true;
+        boolean enemyTurn = false;
+
+        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
+        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
+
+        /* Print enemyHealth */
+        textGraphics.setForegroundColor(TextColor.ANSI.RED);
+        textGraphics.putString(panelWidth - 20, terminalHeight - 4, "ENEMY HEALTH: " + enemyHealth + " ");
+
         KeyType keyType = keyStroke.getKeyType();
 
         /* Fight message */
-        String message = UI.getMapMessage(Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+        String message = UI.getMapMessage(Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
 
         /* Print fight UI */
         UI.print(message, terminalWidth, terminalHeight, textGraphics);
@@ -230,15 +282,84 @@ public class Starfall {
 
         screen.refresh();
 
-        /* Shoot weapon */
-        if (keyType == KeyType.Character && keyStroke.getCharacter() == 'z') {
-            Player.shootLaser(screen, textGraphics, terminalWidth, terminalHeight);
-        } else if (keyType == KeyType.Character && keyStroke.getCharacter() == 'x') {
-            Player.shootCannon(screen, textGraphics, terminalWidth, terminalHeight);
+        if (playerTurn) {
+            /* Shoot weapon */
+            if (keyType == KeyType.Character && keyStroke.getCharacter() == 'z') {
+                enemyHealth -= Player.shootLaser(screen, textGraphics, terminalWidth, terminalHeight);
+                playerTurn = false;
+                enemyTurn = true;
+            } else if (keyType == KeyType.Character && keyStroke.getCharacter() == 'x') {
+                enemyHealth -= Player.shootCannon(screen, textGraphics, terminalWidth, terminalHeight);
+                playerTurn = false;
+                enemyTurn = true;
+            }
+
         }
 
-        /* Enemy shoot */
-        World.enemyAttack(enemyNum, screen, textGraphics, enemyNum, enemyHealth);
+        /* Check for enemy death */
+        if (enemyHealth < 0) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+
+            fighting = false;
+            screen.clear();
+            UI.drawInventory(screen, textGraphics, terminalWidth, terminalHeight, health, maxHealth, coins);
+            coins += World.fightWon(screen, textGraphics, terminalWidth, terminalHeight, enemyNum);
+            screen.refresh();
+        } else {
+            /* Enemy not dead, continue with fight */
+
+            /* Print enemyHealth */
+            textGraphics.setForegroundColor(TextColor.ANSI.RED);
+            textGraphics.putString(panelWidth - 20, terminalHeight - 4, "ENEMY HEALTH: " + enemyHealth + " ");
+            textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+
+            /* Reset the fight screen */
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+
+            /* Clear the panel */
+            for (int y = 1; y < panelHeight; y++) {
+                for (int x = 1; x < panelWidth; x++) {
+                    textGraphics.putString(x, y, " ");
+                }
+            }
+
+            /* Print ships */
+            World.fight(screen, textGraphics, terminalWidth, terminalHeight,
+                    Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
+            screen.refresh();
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+
+            if (enemyTurn) {
+                /* Enemy shoot, take damage */
+                health -= World.enemyAttack(enemyNum, screen, textGraphics, enemyNum, enemyHealth);
+                enemyTurn = false;
+                playerTurn = true;
+            }
+
+            /* Refresh the health UI */
+            UI.drawInventory(screen, textGraphics, terminalWidth, terminalHeight, health, maxHealth, coins);
+            textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
     }
 
     /**

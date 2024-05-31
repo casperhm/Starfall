@@ -8,15 +8,11 @@
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 
 import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.screen.Screen;
-import com.googlecode.lanterna.terminal.IOSafeTerminalAdapter;
-
-import java.nio.file.Paths;
 import java.nio.file.Path;
 
 public class UI {
@@ -30,26 +26,28 @@ public class UI {
 
   /*
    * mainMenu
-   * Prints the main menu
+   * Prints the main menu, also the death screen
    * Created: 15/5/24
    * Author: Casper Hillyer Magoffin
    */
-  public static void mainMenu() {
-    Methods.clearScreen();
+  public static void menuScreen(Path path, TextGraphics textGraphics, Screen screen, int terminalWidth,
+      int terminalHeight) {
+    screen.clear();
     /* Print the title (from txt file to avoid java escape protocol) */
-    try (var in = Files.newBufferedReader(Paths.get("txt/mainMenu.txt"), StandardCharsets.UTF_8)) {
+    try (var in = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
       String line = null;
+      int y = (terminalHeight / 2) - 9;
       while ((line = in.readLine()) != null) {
-        System.out.println(line);
+        textGraphics.putString((terminalWidth / 2) - (line.length() / 2), y, line); // put the words in the middle of
+                                                                                    // the
+        // screen
+        y++;
       }
     } catch (IOException e) {
 
       System.out.println("An error occurred.");
       e.printStackTrace();
     }
-
-    /* Print the main text blocks */
-    System.out.println("                    Press any key to start");
   }
 
   /**
@@ -61,8 +59,8 @@ public class UI {
    * @return a 2d array of map data
    * @throws IOException all hope is lost
    */
-  public static char[][] map(Path path) throws IOException {
-    Methods.clearScreen();
+  public static char[][] map(Path path, Screen screen) throws IOException {
+    screen.clear();
 
     var rows = new ArrayList<char[]>();
 

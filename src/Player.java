@@ -12,8 +12,15 @@ import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
 import com.googlecode.lanterna.screen.Screen;
+import java.security.SecureRandom;
 
 public class Player {
+    static final SecureRandom random = new SecureRandom(); // for random ints
+
+    /*
+     * I use sets for the collision layer just so i can use set.contains to check
+     * collision - miuch quicker
+     */
 
     /* WALLS collision layer - player cannot walk thorugh these */
     private static final Set<Character> WALLS = Collections
@@ -199,7 +206,10 @@ public class Player {
      * @param terminalWidth
      * @param terminalHeight
      */
-    public static void shootLaser(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight) {
+    public static int shootLaser(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight) {
+        /* Do damage to the enemy */
+        int damage = random.nextInt(30, 60);
+
         terminalWidth = screen.getTerminalSize().getColumns();
         terminalHeight = screen.getTerminalSize().getRows();
         final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1; // adjacent
@@ -221,7 +231,7 @@ public class Player {
 
         /* Draw the laser segment */
         for (int y = panelHeight - 3; y > 0 && x > 0; y += 0) {
-            textGraphics.putString(x, y, "-_-");
+            textGraphics.putString(x, y, "-_");
             try {
                 screen.refresh();
                 try {
@@ -256,6 +266,8 @@ public class Player {
         }
 
         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+
+        return damage;
     }
 
     /**
@@ -267,8 +279,12 @@ public class Player {
      * @param textGraphics
      * @param terminalWidth
      * @param terminalHeight
+     * @return damage done
      */
-    public static void shootCannon(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight) {
+    public static int shootCannon(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight) {
+        /* Do damage to the enemy */
+        int damage = random.nextInt(50, 100);
+
         terminalWidth = screen.getTerminalSize().getColumns();
         terminalHeight = screen.getTerminalSize().getRows();
         final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1; // adjacent
@@ -338,5 +354,13 @@ public class Player {
         textGraphics.putString(x, y + 6, "..........");
 
         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+
+        try {
+            screen.refresh();
+        } catch (IOException e) {
+            // do nobthing
+        }
+
+        return damage;
     }
 }

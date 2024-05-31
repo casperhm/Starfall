@@ -1,3 +1,8 @@
+/* World
+ * 
+ * This class contains methods for enemy activity, and things outside of the player
+*/
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -17,6 +22,15 @@ public class World {
 
     }
 
+    /**
+     * prints the fight UI, player ship, enemy ship, etc
+     * 
+     * @param screen
+     * @param textGraphics
+     * @param terminalWidth
+     * @param terminalHeight
+     * @param path           the enemy ship to use
+     */
     public static void fight(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight,
             Path path) {
         final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
@@ -58,6 +72,17 @@ public class World {
         textGraphics.putString(3, panelHeight - 2, "Z: LASER       X: CANNON");
     }
 
+    /**
+     * Returns damage that the enmy has dealth, and chooses animation based on what
+     * ship it is
+     * 
+     * @param enemyNum       the enemy it is
+     * @param screen
+     * @param textGraphics
+     * @param terminalWidth
+     * @param terminalHeight
+     * @return the damage the enemy has done
+     */
     public static int enemyAttack(int enemyNum, Screen screen, TextGraphics textGraphics, int terminalWidth,
             int terminalHeight) {
         int damage = 0;
@@ -67,7 +92,6 @@ public class World {
             /* Pirate cruiser */
             case 0:
                 damage = random.nextInt(5, 15);
-                /* Draw the bombs */
                 pirateBombs(screen, textGraphics, terminalWidth, terminalHeight);
                 break;
 
@@ -76,6 +100,10 @@ public class World {
                 damage = random.nextInt(8, 12);
                 imperialLaser(screen, textGraphics, terminalWidth, terminalHeight);
                 break;
+            /* Bounty hunter */
+            case 2:
+                damage = random.nextInt(2, 20);
+                railGun(screen, textGraphics, terminalWidth, terminalHeight);
         }
         return damage;
     }
@@ -258,5 +286,192 @@ public class World {
         }
 
         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+    }
+
+    /**
+     * railGun
+     * 
+     * like the imperial laser but theres 3 of them and they are purple. also draws
+     * a portal thing for them to come out of
+     * 
+     * @param screen
+     * @param textGraphics
+     * @param terminalWidth
+     * @param terminalHeight
+     */
+    public static void railGun(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight) {
+        terminalWidth = screen.getTerminalSize().getColumns();
+        terminalHeight = screen.getTerminalSize().getRows();
+        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1; // adjacent
+        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1; // opposite
+
+        /* Calculate the laser triangle */
+        double opposite = panelHeight - 7;
+        double adjacent = panelWidth - 29;
+
+        double angle = Math.tanh(opposite / adjacent);
+
+        double xPerCol = Math.cos(angle);
+        double yPerCol = Math.sin(angle);
+        int x = 29;
+        int y = 7;
+
+        textGraphics.setForegroundColor(TextColor.ANSI.MAGENTA_BRIGHT);
+
+        /* Print the laser charge up */
+        textGraphics.setCharacter(28, 7, '/');
+        try {
+            Thread.sleep(100);
+            try {
+                screen.refresh();
+            } catch (IOException e) {
+                // nothing
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+        textGraphics.setCharacter(27, 8, '/');
+        textGraphics.setCharacter(29, 6, '/');
+        try {
+            Thread.sleep(100);
+            try {
+                screen.refresh();
+            } catch (IOException e) {
+                // nothing
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+        textGraphics.setCharacter(26, 9, '/');
+        textGraphics.setCharacter(30, 5, '/');
+        try {
+            Thread.sleep(100);
+            try {
+                screen.refresh();
+            } catch (IOException e) {
+                // nothing
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+        textGraphics.setCharacter(25, 10, '/');
+        textGraphics.setCharacter(31, 4, '/');
+        try {
+            Thread.sleep(100);
+            try {
+                screen.refresh();
+            } catch (IOException e) {
+                // nothing
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+        textGraphics.setCharacter(24, 11, '/');
+        textGraphics.setCharacter(32, 3, '/');
+        try {
+            Thread.sleep(100);
+            try {
+                screen.refresh();
+            } catch (IOException e) {
+                // nothing
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        }
+
+        /* Print the lasers */
+
+        /* Draw the laser segments */
+        for (y = 7; y < panelHeight - 5 && x < panelWidth - 5; y += 0) {
+            textGraphics.putString(x, y, "~");
+            textGraphics.putString(x + 4, y - 4, "~");
+            textGraphics.putString(x - 4, y + 4, "~");
+
+            try {
+                screen.refresh();
+                try {
+                    Thread.sleep(5);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+            } catch (IOException e) {
+                // nothign
+            }
+
+            /*
+             * These are for making diffrent steepness in the laser
+             * For example, with a yPerCol of 0.3, the y draw would increment abuot 1/3
+             * loops, giving a steeper laser.
+             */
+            if (yPerCol < 1) {
+                if (Math.random() < yPerCol) {
+                    y++;
+                }
+            } else {
+                y += yPerCol;
+            }
+
+            if (xPerCol < 1) {
+                if (Math.random() < xPerCol) {
+                    x++;
+                }
+            } else {
+                x += xPerCol;
+            }
+        }
+
+        textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+    }
+
+    /**
+     * fightWon
+     * 
+     * print a fight won UI and give the player some coins
+     * 
+     * @param screen
+     * @param textGraphics
+     * @param terminalWidth
+     * @param terminalHeight
+     * @param enemyNum       what enemy you killed
+     * @return how many coins you gained
+     */
+    public static int fightWon(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight,
+            int enemyNum) {
+        final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
+        final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
+
+        /* Clear the panel */
+        for (int y = 1; y < panelHeight; y++) {
+            for (int x = 1; x < panelWidth; x++) {
+                textGraphics.putString(x, y, " ");
+            }
+        }
+
+        textGraphics.setForegroundColor(TextColor.ANSI.GREEN_BRIGHT);
+        UI.print("YOU HAVE DEFEATED THE ENEMY SHIP", terminalWidth, terminalHeight,
+                textGraphics);
+
+        int coinsFound = random.nextInt(50, 150);
+        textGraphics.putString(5, 5, String.format("YOU FIND %d COINS", coinsFound));
+
+        /* Print the enemy ship */
+        try (var in = Files.newBufferedReader(Paths.get("txt", String.format("enemy%d.txt", enemyNum)),
+                StandardCharsets.UTF_8)) {
+            String line = null;
+            int row = 10;
+            in.readLine(); // skip the first line
+
+            while ((line = in.readLine()) != null) {
+                textGraphics.putString(10, row, line);
+                row++;
+            }
+        } catch (IOException e) {
+
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+
+        textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+        return coinsFound;
     }
 }
