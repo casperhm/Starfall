@@ -12,8 +12,12 @@ import java.util.ArrayList;
 
 import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.graphics.TextGraphics;
+import com.googlecode.lanterna.input.KeyStroke;
+import com.googlecode.lanterna.input.KeyType;
 import com.googlecode.lanterna.screen.Screen;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.io.File;
 
 public class UI {
 
@@ -24,23 +28,28 @@ public class UI {
 
   }
 
-  /*
-   * mainMenu
-   * Prints the main menu, also the death screen
-   * Created: 15/5/24
-   * Author: Casper Hillyer Magoffin
+  /**
+   * menuScreen
+   * 
+   * Print the main menu / death screen
+   * 
+   * @param path           chose main menu or death screen
+   * @param textGraphics
+   * @param screen
+   * @param terminalWidth
+   * @param terminalHeight
+   * @param selected       which option to highlight
    */
   public static void menuScreen(Path path, TextGraphics textGraphics, Screen screen, int terminalWidth,
-      int terminalHeight) {
+      int terminalHeight, int selected) {
     screen.clear();
-    /* Print the title (from txt file to avoid java escape protocol) */
+    /* Print the title / game over */
     try (var in = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
       String line = null;
       int y = (terminalHeight / 2) - 9;
       while ((line = in.readLine()) != null) {
         textGraphics.putString((terminalWidth / 2) - (line.length() / 2), y, line); // put the words in the middle of
-                                                                                    // the
-        // screen
+                                                                                    // the screen
         y++;
       }
     } catch (IOException e) {
@@ -48,6 +57,197 @@ public class UI {
       System.out.println("An error occurred.");
       e.printStackTrace();
     }
+
+    /* Print new game /load save options */
+
+    /* Highlight text if selected */
+    if (selected == 0) {
+      textGraphics.setBackgroundColor(TextColor.ANSI.WHITE_BRIGHT);
+    }
+
+    textGraphics.putString((terminalWidth / 2) - 8, (terminalHeight / 2) + 6, "NEW SAVE");
+
+    textGraphics.setBackgroundColor(null); // reset background color
+
+    /* Highlight text if selected */
+    if (selected == 1) {
+      textGraphics.setBackgroundColor(TextColor.ANSI.WHITE_BRIGHT);
+    }
+
+    textGraphics.putString((terminalWidth / 2) - 8, (terminalHeight / 2) + 8, "LOAD SAVE");
+
+    textGraphics.setBackgroundColor(null); // reset background color
+  }
+
+  /**
+   * saveSelect
+   * 
+   * Opens the save selection screen where the user has a choice between 5 save
+   * slots, to load or create new saves in
+   * 
+   * @param textGraphics
+   * @param screen
+   * @param terminalWidth
+   * @param terminalHeight
+   * @param selected       if they are loading or creating a save (0 for create 1
+   *                       for load)
+   */
+  public static int saveSelect(TextGraphics textGraphics, Screen screen, int terminalWidth,
+      int terminalHeight, int selected) throws IOException {
+    screen.clear();
+
+    boolean hasChosen = false;
+    int saveSelected = 0;
+    int saveSlot = 1;
+    boolean blankSlot = false;
+
+    while (!hasChosen) {
+      /* Print the save options and highlight them if they are selected */
+      if (selected == 0) {
+        textGraphics.putString(5, 5, "NEW SAVE");
+      } else {
+        textGraphics.putString(5, 5, "LOAD SAVE");
+      }
+      textGraphics.putString(5, 6, "ESC TO RETURN TO MENU SCREEN");
+      if (saveSelected == 0) {
+        textGraphics.setBackgroundColor(TextColor.ANSI.WHITE_BRIGHT);
+      }
+
+      textGraphics.putString((terminalWidth / 2) - 40, terminalHeight / 2, "SAVE SLOT #1");
+
+      textGraphics.setBackgroundColor(null);
+
+      if (saveSelected == 1) {
+        textGraphics.setBackgroundColor(TextColor.ANSI.WHITE_BRIGHT);
+      }
+
+      textGraphics.putString((terminalWidth / 2) - 20, terminalHeight / 2, "SAVE SLOT #2");
+
+      textGraphics.setBackgroundColor(null);
+
+      if (saveSelected == 2) {
+        textGraphics.setBackgroundColor(TextColor.ANSI.WHITE_BRIGHT);
+      }
+
+      textGraphics.putString((terminalWidth / 2), terminalHeight / 2, "SAVE SLOT #3");
+
+      textGraphics.setBackgroundColor(null);
+
+      if (saveSelected == 3) {
+        textGraphics.setBackgroundColor(TextColor.ANSI.WHITE_BRIGHT);
+      }
+
+      textGraphics.putString((terminalWidth / 2) + 20, terminalHeight / 2, "SAVE SLOT #4");
+
+      textGraphics.setBackgroundColor(null);
+
+      if (saveSelected == 4) {
+        textGraphics.setBackgroundColor(TextColor.ANSI.WHITE_BRIGHT);
+      }
+
+      textGraphics.putString((terminalWidth / 2) + 40, terminalHeight / 2, "SAVE SLOT #5");
+
+      textGraphics.setBackgroundColor(null);
+
+      screen.refresh();
+      KeyStroke keyStroke = screen.readInput();
+      KeyType keyType = keyStroke.getKeyType();
+
+      /* Get user input */
+      if (keyType == KeyType.ArrowLeft && saveSelected > 0) {
+        saveSelected--;
+        saveSlot--;
+      } else if (keyType == KeyType.ArrowRight && saveSelected < 4) {
+        saveSelected++;
+        saveSlot++;
+      } else if (keyType == KeyType.Enter) {
+        saveSlot = saveSelected + 1;
+      } else if (keyType == KeyType.Escape) {
+        /*
+         * Back to load/new screen, it checks for 999 as basicly an int return false and
+         * knows they want to go back
+         */
+        return 999;
+      }
+
+      /* Check if the saveSlot selected is full or empty */
+      try (var in = Files.newBufferedReader(Paths.get("txt", "gameData", String.format("SAVE_%d.txt", saveSlot)),
+          StandardCharsets.UTF_8)) {
+        if (in.readLine() == null) {
+          blankSlot = true;
+        } else {
+          blankSlot = false;
+        }
+      } catch (IOException e) {
+        System.out.println("An error occurred.");
+        e.printStackTrace();
+      }
+
+      /* Check is the player is loading or creating a save */
+      /* Creating */
+      if (selected == 0) {
+        /*
+         * If they try to overwrite an existing save, ask if they want to. otherwise
+         * create a new save
+         */
+        if (!blankSlot && keyType == KeyType.Enter) {
+          screen.clear();
+          textGraphics.putString((terminalWidth / 2) - 34, terminalHeight / 2,
+              "THERE IS ALREADY A SAVE IN THIS SLOT. WOULD YOU LIKE TO OVERWRITE IT? (Y/N)");
+          screen.refresh();
+          boolean validInput = false;
+          while (!validInput) {
+            /* Get input */
+            keyStroke = screen.readInput();
+            keyType = keyStroke.getKeyType();
+
+            /* Yes, overwrite save */
+            if (keyType == KeyType.Character && keyStroke.getCharacter() == 'y') {
+              validInput = true;
+              hasChosen = true;
+              /* Clear save file by deleting and remaking it */
+              File saveFile = new File(String.format("txt/gameData/SAVE_%d.txt", saveSlot));
+              saveFile.delete();
+              /* Recreate file */
+              new File(String.format("txt/gameData/SAVE_%d.txt", saveSlot)).createNewFile();
+            }
+
+            if (keyType == KeyType.Character && keyStroke.getCharacter() == 'n') {
+              validInput = true;
+              screen.clear();
+              /* Go back to save select screen */
+            }
+          }
+          /* No game data found, create new save */
+        } else if (keyType == KeyType.Enter) {
+          hasChosen = true;
+        }
+      }
+
+      /* Loading */
+      if (selected == 1) {
+        /*
+         * If they are trying to load a non existant save, dont let them. otherwise just
+         * load the save
+         */
+
+        /* No save data found */
+        if (blankSlot && keyType == KeyType.Enter) {
+          screen.clear();
+          textGraphics.putString((terminalWidth / 2) - 15, terminalHeight / 2,
+              "THERE IS NO SAVE IN THIS SLOT");
+          screen.refresh();
+
+          /* Back to save select */
+          screen.clear();
+          screen.readInput();
+        } else if (keyType == KeyType.Enter) {
+          /* Load the selected save */
+          return saveSlot;
+        }
+      }
+    }
+    return saveSlot;
   }
 
   /**

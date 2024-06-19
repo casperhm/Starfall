@@ -1,0 +1,11 @@
+CONFIG README
+
+This just shows how to set up the config file
+
+HEALTH
+MAXHEALTH
+CAPHEALTH
+COINS
+PLAYERX
+PLAYERY
+XP

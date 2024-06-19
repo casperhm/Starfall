@@ -9,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 
 import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.graphics.TextGraphics;
@@ -20,6 +22,96 @@ public class World {
 
     public static void main(String[] args) {
 
+    }
+
+    /**
+     * Saves player information to the SAVE files
+     * 
+     * @param playerX   information to save
+     * @param playerY
+     * @param health
+     * @param maxHealth
+     * @param coins
+     * @param XP
+     * @param saveSlot  the file to save to
+     */
+    public static void save(int playerX, int playerY, int health, int maxHealth, int coins, int XP, int saveSlot) {
+        try {
+            FileWriter writer = new FileWriter(String.format("txt/gameData/SAVE_%d.txt", saveSlot));
+            BufferedWriter bw = new BufferedWriter(writer);
+
+            /* Save the player stats to SAVE file */
+            bw.write(Integer.toString(playerX));
+            bw.newLine();
+            bw.write(Integer.toString(playerY));
+            bw.newLine();
+            bw.write(Integer.toString(health));
+            bw.newLine();
+            bw.write(Integer.toString(maxHealth));
+            bw.newLine();
+            bw.write(Integer.toString(coins));
+            bw.newLine();
+            bw.write(Integer.toString(XP));
+
+            bw.close();
+
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Load reads the selected save slot and sets up stats accordingly
+     * 
+     * @param saveSlot the file to read
+     * @return save[] is an array that has each line as one of the values
+     */
+    public static int[] load(int saveSlot) {
+        int[] save = new int[7];
+
+        try (var in = Files.newBufferedReader(Paths.get("txt", "gameData", String.format("SAVE_%d.txt", saveSlot)),
+                StandardCharsets.UTF_8)) {
+            save[0] = Integer.parseInt(in.readLine()); // playerX
+            save[1] = Integer.parseInt(in.readLine()); // playerY
+            save[3] = Integer.parseInt(in.readLine()); // health
+            save[4] = Integer.parseInt(in.readLine()); // maxHealth
+            save[5] = Integer.parseInt(in.readLine()); // coins
+            save[6] = Integer.parseInt(in.readLine()); // XP
+        } catch (IOException e) {
+
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+
+        return save;
+    }
+
+    /**
+     * Sets up basic game values such as health and coins, from the config file
+     * Basicly the default save file
+     * 
+     * @return config[] is an int array that has each line as one of the values,
+     *         line 1 of config is config[0] etc.
+     */
+    public static int[] config() {
+        int[] config = new int[7];
+
+        try (var in = Files.newBufferedReader(Paths.get("txt", "gameData", "config.txt"), StandardCharsets.UTF_8)) {
+            config[0] = Integer.parseInt(in.readLine()); // health
+            config[1] = Integer.parseInt(in.readLine()); // maxHealth
+            config[2] = Integer.parseInt(in.readLine()); // capHealth
+            config[3] = Integer.parseInt(in.readLine()); // coins
+            config[4] = Integer.parseInt(in.readLine()); // playerX
+            config[5] = Integer.parseInt(in.readLine()); // playerY
+            config[6] = Integer.parseInt(in.readLine()); // XP
+        } catch (IOException e) {
+
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+
+        return config;
     }
 
     /**

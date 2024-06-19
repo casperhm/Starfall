@@ -12,6 +12,9 @@ import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.screen.TerminalScreen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
 import com.googlecode.lanterna.terminal.Terminal;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.io.IOException;
@@ -19,23 +22,30 @@ import java.io.IOException;
 public class Starfall {
     private final Screen screen;
 
+    /* coinfig data from config file */
+    int[] config = World.config();
+
+    int saveSlot = 0;
+
     private TextGraphics textGraphics;
-    private int playerX = 10;
-    private int playerY = 10;
+    private int playerX = 0;
+    private int playerY = 0;
     int enterX = 0;
     int enterY = 0;
     private int terminalHeight;
     private int terminalWidth;
 
     /* Player Stats */
-    int health = 20;
-    int maxHealth = 20;
-    private final int capHealth = 32;
+    int health = 0;
+    int maxHealth = 0;
+    private final int capHealth = config[2];
     int coins = 0;
 
     boolean fighting = false;
     int enemyNum = 0;
     int enemyHealth = 0;
+
+    int XP = 0;
 
     static final SecureRandom random = new SecureRandom(); // for random ints
 
@@ -61,14 +71,73 @@ public class Starfall {
         final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
         final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
 
-        /* Draw the main menu */
-        UI.menuScreen(Paths.get("txt", "mainMenu.txt"), textGraphics, screen, terminalWidth, terminalHeight);
-        screen.refresh();
+        /* Draw the main menu and select new or load save */
+        boolean hasChosen = false;
+        int selected = 0; // the option the user has selected, 0 is new save 1 is load save
 
-        /* Start game on key press */
-        screen.readInput();
+        while (!hasChosen) {
+            UI.menuScreen(Paths.get("txt", "mainMenu.txt"), textGraphics, screen, terminalWidth, terminalHeight,
+                    selected);
+            screen.refresh();
 
-        /* Add story here in the future */
+            /* Get user input */
+            KeyStroke keyStroke = screen.readInput();
+            KeyType keyType = keyStroke.getKeyType();
+
+            if (keyType == KeyType.ArrowUp) {
+                if (selected == 1) {
+                    selected = 0;
+                }
+            } else if (keyType == KeyType.ArrowDown) {
+                if (selected == 0) {
+                    selected = 1;
+                }
+            }
+
+            /* User confirmed */
+            if (keyType == KeyType.Enter) {
+                saveSlot = UI.saveSelect(textGraphics, screen, terminalWidth, terminalHeight, selected);
+                /* saveSlot returns 999 if the user chooses to go back to the main menu */
+                if (saveSlot != 999) {
+                    hasChosen = true;
+                }
+            }
+        }
+
+        /* Setup stats from save slot, or config if new save */
+        /* Check if the saveSlot selected is full or empty */
+        boolean blankSlot = false;
+        try (var in = Files.newBufferedReader(Paths.get("txt", "gameData", String.format("SAVE_%d.txt", saveSlot)),
+                StandardCharsets.UTF_8)) {
+            if (in.readLine() == null) {
+                blankSlot = true;
+            } else {
+                blankSlot = false;
+            }
+
+            /* get save data defualts from config file */
+            if (blankSlot) {
+                health = config[0];
+                maxHealth = config[1];
+                coins = config[3];
+                playerX = config[4];
+                playerY = config[5];
+                XP = config[6];
+            } else {
+                /* Get data from save file */
+                int[] save = World.load(saveSlot);
+
+                playerX = save[0];
+                playerY = save[1];
+                health = save[2];
+                maxHealth = save[3];
+                coins = save[4];
+                XP = save[5];
+            }
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
 
         /* Create the map array from map.txt */
         char[][] map = UI.map(Paths.get("txt", "map.txt"), screen);
@@ -88,7 +157,10 @@ public class Starfall {
 
         /* This is the main game loop */
         while (true) {
-            /* Get player direction */
+            /* Save the game */
+            World.save(playerX, playerY, health, maxHealth, coins, XP, saveSlot);
+
+            /* Get player input */
             KeyStroke keyStroke = screen.readInput();
 
             int coords[] = Player.move(keyStroke, playerX, playerY, map[0].length, map.length);
@@ -107,9 +179,9 @@ public class Starfall {
                  * starts at 0 and moves up based on xp and area - i havent added xp yet it is
                  * just 1/50 for now
                  */
-                double fightChance = Math.random() * 100;
+                double fightChance = Math.random();
 
-                if (fightChance > 98 && !fighting && onMainMap) {
+                if (fightChance < 0.01 && !fighting && onMainMap) {
                     fighting = true;
 
                     enemyNum = random.nextInt(0, 3);
@@ -227,7 +299,9 @@ public class Starfall {
                 }
 
                 textGraphics.setForegroundColor(TextColor.ANSI.RED);
-                UI.menuScreen(Paths.get("txt", "deathScreen.txt"), textGraphics, screen, terminalWidth, terminalHeight);
+                selected = 0;
+                UI.menuScreen(Paths.get("txt", "deathScreen.txt"), textGraphics, screen, terminalWidth, terminalHeight,
+                        selected);
                 fighting = false;
                 screen.refresh();
 
