@@ -35,7 +35,8 @@ public class World {
      * @param XP
      * @param saveSlot  the file to save to
      */
-    public static void save(int playerX, int playerY, int health, int maxHealth, int coins, int XP, int saveSlot) {
+    public static void save(int playerX, int playerY, int health, int maxHealth, int coins, int XP, int saveSlot,
+            int enterX, int enterY) {
         try {
             FileWriter writer = new FileWriter(String.format("txt/gameData/SAVE_%d.txt", saveSlot));
             BufferedWriter bw = new BufferedWriter(writer);
@@ -52,9 +53,12 @@ public class World {
             bw.write(Integer.toString(coins));
             bw.newLine();
             bw.write(Integer.toString(XP));
+            bw.newLine();
+            bw.write(Integer.toString(enterX));
+            bw.newLine();
+            bw.write(Integer.toString(enterY));
 
             bw.close();
-
         } catch (IOException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
@@ -68,7 +72,7 @@ public class World {
      * @return save[] is an array that has each line as one of the values
      */
     public static int[] load(int saveSlot) {
-        int[] save = new int[7];
+        int[] save = new int[9];
 
         try (var in = Files.newBufferedReader(Paths.get("txt", "gameData", String.format("SAVE_%d.txt", saveSlot)),
                 StandardCharsets.UTF_8)) {
@@ -78,6 +82,8 @@ public class World {
             save[4] = Integer.parseInt(in.readLine()); // maxHealth
             save[5] = Integer.parseInt(in.readLine()); // coins
             save[6] = Integer.parseInt(in.readLine()); // XP
+            save[7] = Integer.parseInt(in.readLine()); // room enter X
+            save[8] = Integer.parseInt(in.readLine()); // room enter Y
         } catch (IOException e) {
 
             System.out.println("An error occurred.");

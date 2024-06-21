@@ -26,12 +26,13 @@ public class Starfall {
     int[] config = World.config();
 
     int saveSlot = 0;
+    boolean blankSlot;
 
     private TextGraphics textGraphics;
     private int playerX = 0;
     private int playerY = 0;
-    int enterX = 0;
-    int enterY = 0;
+    int enterX = -1; // -1 means not in a map
+    int enterY = -1;
     private int terminalHeight;
     private int terminalWidth;
 
@@ -106,7 +107,7 @@ public class Starfall {
 
         /* Setup stats from save slot, or config if new save */
         /* Check if the saveSlot selected is full or empty */
-        boolean blankSlot = false;
+        blankSlot = false;
         try (var in = Files.newBufferedReader(Paths.get("txt", "gameData", String.format("SAVE_%d.txt", saveSlot)),
                 StandardCharsets.UTF_8)) {
             if (in.readLine() == null) {
@@ -129,21 +130,35 @@ public class Starfall {
 
                 playerX = save[0];
                 playerY = save[1];
-                health = save[2];
-                maxHealth = save[3];
-                coins = save[4];
-                XP = save[5];
+                health = save[3];
+                maxHealth = save[4];
+                coins = save[5];
+                XP = save[6];
+                enterX = save[7];
+                enterY = save[8];
             }
         } catch (IOException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
         }
-
-        /* Create the map array from map.txt */
+        /* If is on main map */
         char[][] map = UI.map(Paths.get("txt", "map.txt"), screen);
+        boolean onMainMap = true;
+
+        /* Get the map from save if is not a blank save */
+        /* if save[whatever] is not -1 get map from name of that coord */
+        if (!blankSlot) {
+            int[] save = World.load(saveSlot);
+
+            /* Is in a room */
+            if (save[7] != -1) {
+                map = UI.map(Paths.get("txt", String.format("%d,%d.txt", enterX, enterY)), screen);
+                onMainMap = false;
+            }
+        }
+
         boolean[][] chestData = new boolean[map.length][map[0].length]; // for checking if chests have been opened or
                                                                         // not
-        boolean onMainMap = true;
 
         /* Get the map message */
         String message = UI.getMapMessage(Paths.get("txt", "map.txt"));
@@ -158,7 +173,7 @@ public class Starfall {
         /* This is the main game loop */
         while (true) {
             /* Save the game */
-            World.save(playerX, playerY, health, maxHealth, coins, XP, saveSlot);
+            World.save(playerX, playerY, health, maxHealth, coins, XP, saveSlot, enterX, enterY);
 
             /* Get player input */
             KeyStroke keyStroke = screen.readInput();
@@ -223,6 +238,7 @@ public class Starfall {
 
                 map = UI.map(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)), screen);
                 onMainMap = false;
+
                 message = UI.getMapMessage(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)));
                 textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
                 UI.print(message, terminalWidth, terminalHeight, textGraphics);
@@ -248,6 +264,10 @@ public class Starfall {
                 UI.print(message, terminalWidth, terminalHeight, textGraphics);
                 playerX = enterX;
                 playerY = enterY;
+
+                /* Reset enter x and y to -1 - not in room */
+                enterX = -1;
+                enterY = -1;
             }
 
             /* For openning chests */
