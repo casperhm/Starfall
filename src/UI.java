@@ -206,12 +206,19 @@ public class UI {
             if (keyType == KeyType.Character && keyStroke.getCharacter() == 'y') {
               validInput = true;
               hasChosen = true;
-              /* Clear save file by deleting and remaking it */
-              File saveFile = new File(String.format("txt/gameData/SAVES/SAVE_%d/SAVE.txt", saveSlot));
-              saveFile.delete();
-              /* Recreate file */
-              new File(String.format("txt/gameData/SAVES/SAVE_%d/SAVE.txt", saveSlot)).createNewFile();
+
+              /* Delete all the old files */
+              File folder = new File(String.format("txt/gameData/SAVES/SAVE_%d", saveSlot));
+              File[] listOfFiles = folder.listFiles();
+              if (listOfFiles != null) {
+                for (int i = 0; i < listOfFiles.length; i++) {
+                  listOfFiles[i].delete();
+                }
+              }
             }
+
+            /* Recreate SAVE file */
+            new File(String.format("txt/gameData/SAVES/SAVE_%d/SAVE.txt", saveSlot)).createNewFile();
 
             if (keyType == KeyType.Character && keyStroke.getCharacter() == 'n') {
               validInput = true;
