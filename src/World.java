@@ -39,7 +39,7 @@ public class World {
     public static void save(int playerX, int playerY, int health, int maxHealth, int coins, int XP, int saveSlot,
             int enterX, int enterY) {
         try {
-            FileWriter writer = new FileWriter(String.format("txt/gameData/SAVE_%d.txt", saveSlot));
+            FileWriter writer = new FileWriter(String.format("txt/gameData/SAVES/SAVE_%d/SAVE.txt", saveSlot));
             BufferedWriter bw = new BufferedWriter(writer);
 
             /* Save the player stats to SAVE file */
@@ -75,7 +75,8 @@ public class World {
     public static int[] load(int saveSlot) {
         int[] save = new int[9];
 
-        try (var in = Files.newBufferedReader(Paths.get("txt", "gameData", String.format("SAVE_%d.txt", saveSlot)),
+        try (var in = Files.newBufferedReader(
+                Paths.get("txt", "gameData", "SAVES", String.format("SAVE_%d", saveSlot), "SAVE.txt"),
                 StandardCharsets.UTF_8)) {
             save[0] = Integer.parseInt(in.readLine()); // playerX
             save[1] = Integer.parseInt(in.readLine()); // playerY
@@ -152,7 +153,7 @@ public class World {
         }
 
         /* Print the player ship */
-        try (var in = Files.newBufferedReader(Paths.get("txt/player.txt"), StandardCharsets.UTF_8)) {
+        try (var in = Files.newBufferedReader(Paths.get("txt/Art/player.txt"), StandardCharsets.UTF_8)) {
             String line = null;
             int row = panelHeight - 5;
             in.readLine(); // skip the first line
@@ -554,7 +555,7 @@ public class World {
         textGraphics.putString(5, 5, String.format("YOU FIND %d COINS", coinsFound));
 
         /* Print the enemy ship */
-        try (var in = Files.newBufferedReader(Paths.get("txt", String.format("enemy%d.txt", enemyNum)),
+        try (var in = Files.newBufferedReader(Paths.get("txt", "Maps", String.format("enemy%d.txt", enemyNum)),
                 StandardCharsets.UTF_8)) {
             String line = null;
             int row = 10;

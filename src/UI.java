@@ -160,7 +160,7 @@ public class UI {
       } else if (keyType == KeyType.ArrowRight && saveSelected < 4) {
         saveSelected++;
         saveSlot++;
-      } else if (keyType == KeyType.Enter) {
+      } else if (keyType == KeyType.Character && keyStroke.getCharacter() == ' ') {
         saveSlot = saveSelected + 1;
       } else if (keyType == KeyType.Escape) {
         /*
@@ -171,7 +171,8 @@ public class UI {
       }
 
       /* Check if the saveSlot selected is full or empty */
-      try (var in = Files.newBufferedReader(Paths.get("txt", "gameData", String.format("SAVE_%d.txt", saveSlot)),
+      try (var in = Files.newBufferedReader(
+          Paths.get("txt", "gameData", "SAVES", String.format("SAVE_%d", saveSlot), "SAVE.txt"),
           StandardCharsets.UTF_8)) {
         if (in.readLine() == null) {
           blankSlot = true;
@@ -190,7 +191,7 @@ public class UI {
          * If they try to overwrite an existing save, ask if they want to. otherwise
          * create a new save
          */
-        if (!blankSlot && keyType == KeyType.Enter) {
+        if (!blankSlot && keyType == KeyType.Character && keyStroke.getCharacter() == ' ') {
           screen.clear();
           textGraphics.putString((terminalWidth / 2) - 34, terminalHeight / 2,
               "THERE IS ALREADY A SAVE IN THIS SLOT. WOULD YOU LIKE TO OVERWRITE IT? (Y/N)");
@@ -206,10 +207,10 @@ public class UI {
               validInput = true;
               hasChosen = true;
               /* Clear save file by deleting and remaking it */
-              File saveFile = new File(String.format("txt/gameData/SAVE_%d.txt", saveSlot));
+              File saveFile = new File(String.format("txt/gameData/SAVES/SAVE_%d/SAVE.txt", saveSlot));
               saveFile.delete();
               /* Recreate file */
-              new File(String.format("txt/gameData/SAVE_%d.txt", saveSlot)).createNewFile();
+              new File(String.format("txt/gameData/SAVES/SAVE_%d/SAVE.txt", saveSlot)).createNewFile();
             }
 
             if (keyType == KeyType.Character && keyStroke.getCharacter() == 'n') {
@@ -219,7 +220,7 @@ public class UI {
             }
           }
           /* No game data found, create new save */
-        } else if (keyType == KeyType.Enter) {
+        } else if (keyType == KeyType.Character && keyStroke.getCharacter() == ' ') {
           hasChosen = true;
         }
       }
@@ -232,7 +233,7 @@ public class UI {
          */
 
         /* No save data found */
-        if (blankSlot && keyType == KeyType.Enter) {
+        if (blankSlot && keyType == KeyType.Character && keyStroke.getCharacter() == ' ') {
           screen.clear();
           textGraphics.putString((terminalWidth / 2) - 15, terminalHeight / 2,
               "THERE IS NO SAVE IN THIS SLOT");
@@ -241,7 +242,7 @@ public class UI {
           /* Back to save select */
           screen.clear();
           screen.readInput();
-        } else if (keyType == KeyType.Enter) {
+        } else if (keyType == KeyType.Character && keyStroke.getCharacter() == ' ') {
           /* Load the selected save */
           return saveSlot;
         }

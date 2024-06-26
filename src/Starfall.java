@@ -88,7 +88,8 @@ public class Starfall {
         int selected = 0; // the option the user has selected, 0 is new save 1 is load save
 
         while (!hasChosen) {
-            UI.menuScreen(Paths.get("txt", "mainMenu.txt"), textGraphics, screen, terminalWidth, terminalHeight,
+            UI.menuScreen(Paths.get("txt", "Menus", "mainMenu.txt"), textGraphics, screen, terminalWidth,
+                    terminalHeight,
                     selected);
             screen.refresh();
 
@@ -107,7 +108,7 @@ public class Starfall {
             }
 
             /* User confirmed */
-            if (keyType == KeyType.Enter) {
+            if (keyType == KeyType.Character && keyStroke.getCharacter() == ' ') {
                 saveSlot = UI.saveSelect(textGraphics, screen, terminalWidth, terminalHeight, selected);
                 /* saveSlot returns 999 if the user chooses to go back to the main menu */
                 if (saveSlot != 999) {
@@ -119,7 +120,8 @@ public class Starfall {
         /* Setup stats from save slot, or config if new save */
         /* Check if the saveSlot selected is full or empty */
         blankSlot = false;
-        try (var in = Files.newBufferedReader(Paths.get("txt", "gameData", String.format("SAVE_%d.txt", saveSlot)),
+        try (var in = Files.newBufferedReader(
+                Paths.get("txt", "gameData", "SAVES", String.format("SAVE_%d", saveSlot), "SAVE.txt"),
                 StandardCharsets.UTF_8)) {
             if (in.readLine() == null) {
                 blankSlot = true;
@@ -153,7 +155,7 @@ public class Starfall {
             e.printStackTrace();
         }
         /* If is on main map */
-        char[][] map = UI.map(Paths.get("txt", "map.txt"), screen);
+        char[][] map = UI.map(Paths.get("txt", "Maps", "map.txt"), screen);
         boolean onMainMap = true;
 
         /* Get the map from save if is not a blank save */
@@ -163,17 +165,17 @@ public class Starfall {
 
             /* Is in a room */
             if (save[7] != -1) {
-                map = UI.map(Paths.get("txt", String.format("%d,%d.txt", enterX, enterY)), screen);
+                map = UI.map(Paths.get("txt", "Maps", String.format("%d,%d.txt", enterX, enterY)), screen);
                 onMainMap = false;
             }
         }
 
         /* Set up chestData file */
-        chestData = new File(String.format("txt/gameData/%d,%d_chestData.txt", enterX, enterY));
+        chestData = new File(String.format("txt/gameData/SAVES/SAVE_%d/%d,%d_chestData.txt", saveSlot, enterX, enterY));
         chestData.createNewFile();
 
         /* Get the map message */
-        String message = UI.getMapMessage(Paths.get("txt", "map.txt"));
+        String message = UI.getMapMessage(Paths.get("txt", "Maps", "map.txt"));
 
         /* Draw the map */
         drawMap(map, onMainMap);
@@ -204,7 +206,7 @@ public class Starfall {
                  * Fighting
                  * You have a chance to be attacked by an enemy ship each time you move. this
                  * starts at 0 and moves up based on xp and area - i havent added xp yet it is
-                 * just 1/50 for now
+                 * just 1/100 for now
                  */
                 double fightChance = Math.random();
 
@@ -248,17 +250,18 @@ public class Starfall {
                 enterX = playerX;
                 enterY = playerY;
 
-                map = UI.map(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)), screen);
+                map = UI.map(Paths.get("txt", "Maps", String.format("%d,%d.txt", playerX, playerY)), screen);
 
                 /* Set up chestData file if not found already */
-                chestData = new File(String.format("txt/gameData/%d,%d_chestData.txt", enterX, enterY));
+                chestData = new File(
+                        String.format("txt/gameData/SAVES/SAVE_%d/%d,%d_chestData.txt", saveSlot, enterX, enterY));
                 chestData.createNewFile();
 
                 ArrayList<String> chestArray = new ArrayList<String>();
 
                 onMainMap = false;
 
-                message = UI.getMapMessage(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)));
+                message = UI.getMapMessage(Paths.get("txt", "Maps", String.format("%d,%d.txt", playerX, playerY)));
                 textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
                 UI.print(message, terminalWidth, terminalHeight, textGraphics);
 
@@ -275,9 +278,9 @@ public class Starfall {
                 /* For exiting rooms back to the main map */
             } else if ((keyType == KeyType.Character && keyStroke.getCharacter() == ' ')
                     && Player.canExit(map, playerX, playerY)) {
-                map = UI.map(Paths.get("txt", "map.txt"), screen);
+                map = UI.map(Paths.get("txt", "Maps", "map.txt"), screen);
                 onMainMap = true;
-                message = UI.getMapMessage(Paths.get("txt", "map.txt"));
+                message = UI.getMapMessage(Paths.get("txt", "Maps", "map.txt"));
                 textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
                 UI.print(message, terminalWidth, terminalHeight, textGraphics);
                 playerX = enterX;
@@ -289,7 +292,7 @@ public class Starfall {
             }
 
             /* For openning chests */
-            if (Player.canOpen(map, playerX, playerY, enterX, enterY)
+            if (Player.canOpen(map, playerX, playerY, enterX, enterY, saveSlot)
                     && (keyType == KeyType.Character && keyStroke.getCharacter() == ' ')) {
 
                 /* Find out what kind of chest it is */
@@ -313,7 +316,8 @@ public class Starfall {
                 chestArray.add(add);
 
                 /* Save chestArray to chestData.txt to make it permanent */
-                FileWriter w = new FileWriter(String.format("txt/gameData/%d,%d_chestData.txt", enterX, enterY));
+                FileWriter w = new FileWriter(
+                        String.format("txt/gameData/SAVES/SAVE_%d/%d,%d_chestData.txt", saveSlot, enterX, enterY));
                 BufferedWriter bw = new BufferedWriter(w);
 
                 for (int i = 0; i < chestArray.size(); i++) {
@@ -352,7 +356,8 @@ public class Starfall {
 
                 textGraphics.setForegroundColor(TextColor.ANSI.RED);
                 selected = 0;
-                UI.menuScreen(Paths.get("txt", "deathScreen.txt"), textGraphics, screen, terminalWidth, terminalHeight,
+                UI.menuScreen(Paths.get("txt", "Menus", "deathScreen.txt"), textGraphics, screen, terminalWidth,
+                        terminalHeight,
                         selected);
                 fighting = false;
                 screen.refresh();
@@ -399,12 +404,12 @@ public class Starfall {
 
         /* Fight message */
         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
-        String message = UI.getMapMessage(Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
+        String message = UI.getMapMessage(Paths.get("txt", "Art", String.format("enemy%d.txt", enemyNum)));
 
         /* Print fight UI */
         UI.print(message, terminalWidth, terminalHeight, textGraphics);
         World.fight(screen, textGraphics, terminalWidth, terminalHeight,
-                Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
+                Paths.get("txt", "Art", String.format("enemy%d.txt", enemyNum)));
 
         screen.refresh();
 
@@ -459,7 +464,7 @@ public class Starfall {
 
             /* Print ships */
             World.fight(screen, textGraphics, terminalWidth, terminalHeight,
-                    Paths.get("txt", String.format("enemy%d.txt", enemyNum)));
+                    Paths.get("txt", "Art", String.format("enemy%d.txt", enemyNum)));
             screen.refresh();
 
             try {
@@ -532,7 +537,8 @@ public class Starfall {
          */
 
         if (!onMainMap) {
-            chestData = new File(String.format("txt/gameData/%d,%d_chestData.txt", enterX, enterY));
+            chestData = new File(
+                    String.format("txt/gameData/SAVES/SAVE_%d/%d,%d_chestData.txt", saveSlot, enterX, enterY));
             scanner = new Scanner(chestData);
         }
 
@@ -571,7 +577,7 @@ public class Starfall {
                     } else if (map[row][col] == '=') {
                         /* If its a chest */
                         if (!World
-                                .fileToArray(Paths.get("txt", "gameData",
+                                .fileToArray(Paths.get("txt", "gameData", "SAVES", String.format("SAVE_%d", saveSlot),
                                         String.format("%d,%d_chestData.txt", enterX, enterY)))
                                 .contains(String.format("%d,%d", col, row))) {
                             /* Chest not opened */
@@ -584,7 +590,7 @@ public class Starfall {
                         }
                     } else if (map[row][col] == '♥') {
                         if (!World
-                                .fileToArray(Paths.get("txt", "gameData",
+                                .fileToArray(Paths.get("txt", "gameData", "SAVES", String.format("SAVE_%d", saveSlot),
                                         String.format("%d,%d_chestData.txt", enterX, enterY)))
                                 .contains(String.format("%d,%d", col, row))) {
                             /* Heart still here */

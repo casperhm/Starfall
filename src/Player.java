@@ -164,15 +164,18 @@ public class Player {
      * Checks if a tile is part of the OPEN set ; if it can be opened - a chest most
      * likely
      * 
-     * @param map     the map[][] to check
-     * @param playerX the x coordinate to check
-     * @param playerY the y coordinate to check
+     * @param map      the map[][] to check
+     * @param playerX  the x coordinate to check
+     * @param playerY  the y coordinate to check
+     * @param saveSlot this is to know which chestData file to check
      * @return true / false
      */
-    public static boolean canOpen(char[][] map, int playerX, int playerY, int enterX, int enterY) throws IOException {
+    public static boolean canOpen(char[][] map, int playerX, int playerY, int enterX, int enterY, int saveSlot)
+            throws IOException {
         boolean alreadyOpened = false;
         /* Check if player has already opened chest */
-        File chestData = new File(String.format("txt/gameData/%d,%d_chestData.txt", enterX, enterY));
+        File chestData = new File(
+                String.format("txt/gameData/SAVES/SAVE_%d/%d,%d_chestData.txt", saveSlot, enterX, enterY));
         Scanner scanner = new Scanner(chestData);
 
         while (scanner.hasNextLine()) {
