@@ -5,6 +5,7 @@
  */
 
 import com.googlecode.lanterna.TextColor;
+import com.googlecode.lanterna.graphics.StyleSet.Set;
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
@@ -12,12 +13,17 @@ import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.screen.TerminalScreen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
 import com.googlecode.lanterna.terminal.Terminal;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.io.IOException;
+import java.io.FileWriter;
+import java.io.BufferedWriter;
+import java.util.Scanner;
+import java.util.ArrayList;
 
 public class Starfall {
     private final Screen screen;
@@ -48,6 +54,11 @@ public class Starfall {
 
     int XP = 0;
 
+    File chestData;
+    Scanner scanner;
+
+    ArrayList<String> chestArray = new ArrayList<>();
+
     static final SecureRandom random = new SecureRandom(); // for random ints
 
     /**
@@ -63,7 +74,7 @@ public class Starfall {
     }
 
     /**
-     * Run does some basic setup like drawing the main menu, and then runs the main
+     * does some basic setup like drawing the main menu, and then runs the main
      * game loop. this is the most important method.
      * 
      * @throws IOException
@@ -157,14 +168,15 @@ public class Starfall {
             }
         }
 
-        boolean[][] chestData = new boolean[map.length][map[0].length]; // for checking if chests have been opened or
-                                                                        // not
+        /* Set up chestData file */
+        chestData = new File(String.format("txt/gameData/%d,%d_chestData.txt", enterX, enterY));
+        chestData.createNewFile();
 
         /* Get the map message */
         String message = UI.getMapMessage(Paths.get("txt", "map.txt"));
 
         /* Draw the map */
-        drawMap(map, chestData);
+        drawMap(map, onMainMap);
         UI.drawInventory(screen, textGraphics, terminalWidth, terminalHeight, health, maxHealth, coins);
         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
         UI.print(message, terminalWidth, terminalHeight, textGraphics);
@@ -237,12 +249,18 @@ public class Starfall {
                 enterY = playerY;
 
                 map = UI.map(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)), screen);
+
+                /* Set up chestData file if not found already */
+                chestData = new File(String.format("txt/gameData/%d,%d_chestData.txt", enterX, enterY));
+                chestData.createNewFile();
+
+                ArrayList<String> chestArray = new ArrayList<String>();
+
                 onMainMap = false;
 
                 message = UI.getMapMessage(Paths.get("txt", String.format("%d,%d.txt", playerX, playerY)));
                 textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
                 UI.print(message, terminalWidth, terminalHeight, textGraphics);
-                chestData = new boolean[map.length][map[0].length]; // for checking if chests have been opened or not
 
                 /* Find where the entrance is in the map */
                 for (int row = 0; row < map.length; row++) {
@@ -271,14 +289,13 @@ public class Starfall {
             }
 
             /* For openning chests */
-            if (Player.canOpen(map, playerX, playerY, chestData)
+            if (Player.canOpen(map, playerX, playerY, enterX, enterY)
                     && (keyType == KeyType.Character && keyStroke.getCharacter() == ' ')) {
 
                 /* Find out what kind of chest it is */
                 if (map[playerY][playerX] == '=') {
                     /* Coin chest */
                     coins = Player.openChest(coins);
-                    chestData[playerY][playerX] = true; // chest has been opened
                 } else if (map[playerY][playerX] == '♥') {
                     /* Heart chest */
                     if (maxHealth < capHealth) {
@@ -286,9 +303,24 @@ public class Starfall {
                     }
                     /* Heal player fully */
                     health = maxHealth;
-                    chestData[playerY][playerX] = true;
                 }
 
+                /*
+                 * Save the coordinates of the chest opened to temporary array, move to file
+                 * later
+                 */
+                String add = String.format("%d,%d", playerX, playerY);
+                chestArray.add(add);
+
+                /* Save chestArray to chestData.txt to make it permanent */
+                FileWriter w = new FileWriter(String.format("txt/gameData/%d,%d_chestData.txt", enterX, enterY));
+                BufferedWriter bw = new BufferedWriter(w);
+
+                for (int i = 0; i < chestArray.size(); i++) {
+                    bw.write(chestArray.get(i));
+                    bw.newLine();
+                }
+                bw.close();
             }
 
             /* Update terminal sizes */
@@ -304,7 +336,7 @@ public class Starfall {
 
             /* Draw the game panel */
             if (!fighting) {
-                drawMap(map, chestData);
+                drawMap(map, onMainMap);
             } else {
                 fightLoop(keyStroke, enemyNum); // start the fight loop
             }
@@ -463,8 +495,9 @@ public class Starfall {
      * @param map       the map to be drawn
      * @param chestData for drawing chests diffrently based on if they have been
      *                  opened or not
+     * @throws FileNotFoundException
      */
-    private void drawMap(char[][] map, boolean[][] chestData) {
+    private void drawMap(char[][] map, boolean onMainMap) throws FileNotFoundException, IOException {
         final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
         final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
 
@@ -497,6 +530,12 @@ public class Starfall {
          * row < mapOriginY + terminalHeight ; col < mapOriginX + terminalWidth ; this
          * stops the printing when it reaches the bottom right point of the quadrant
          */
+
+        if (!onMainMap) {
+            chestData = new File(String.format("txt/gameData/%d,%d_chestData.txt", enterX, enterY));
+            scanner = new Scanner(chestData);
+        }
+
         for (int row = mapOriginY; row < mapOriginY + panelHeight; row++) {
             for (int col = mapOriginX; col < mapOriginX + panelWidth; col++) {
 
@@ -531,7 +570,10 @@ public class Starfall {
                         textGraphics.setCharacter(drawX, drawY, '@');
                     } else if (map[row][col] == '=') {
                         /* If its a chest */
-                        if (!chestData[row][col]) {
+                        if (!World
+                                .fileToArray(Paths.get("txt", "gameData",
+                                        String.format("%d,%d_chestData.txt", enterX, enterY)))
+                                .contains(String.format("%d,%d", row, col))) {
                             /* Chest not opened */
                             textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
                             textGraphics.setCharacter(drawX, drawY, '=');
@@ -541,7 +583,10 @@ public class Starfall {
                             textGraphics.setCharacter(drawX, drawY, '=');
                         }
                     } else if (map[row][col] == '♥') {
-                        if (!chestData[row][col]) {
+                        if (!World
+                                .fileToArray(Paths.get("txt", "gameData",
+                                        String.format("%d,%d_chestData.txt", enterX, enterY)))
+                                .contains(String.format("%d,%d", row, col))) {
                             /* Heart still here */
                             textGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT);
                             textGraphics.setCharacter(drawX, drawY, '♥');

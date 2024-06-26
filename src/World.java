@@ -11,10 +11,11 @@ import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
-
+import java.util.ArrayList;
 import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.screen.Screen;
+import java.util.Scanner;
 
 public class World {
 
@@ -571,5 +572,17 @@ public class World {
 
         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
         return coinsFound;
+    }
+
+    public static ArrayList<String> fileToArray(Path path) throws IOException {
+        Scanner scanner = new Scanner(path);
+        ArrayList<String> array = new ArrayList<>();
+
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+            array.add(line);
+        }
+
+        return array;
     }
 }

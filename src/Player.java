@@ -13,6 +13,7 @@ import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
 import com.googlecode.lanterna.screen.Screen;
 import java.security.SecureRandom;
+import java.io.File;
 
 public class Player {
     static final SecureRandom random = new SecureRandom(); // for random ints
@@ -163,20 +164,31 @@ public class Player {
      * Checks if a tile is part of the OPEN set ; if it can be opened - a chest most
      * likely
      * 
-     * @param map       the map[][] to check
-     * @param playerX   the x coordinate to check
-     * @param playerY   the y coordinate to check
-     * @param chestData for checking if chests have been opened or not ; true is
-     *                  cant
-     *                  open false is can
+     * @param map     the map[][] to check
+     * @param playerX the x coordinate to check
+     * @param playerY the y coordinate to check
      * @return true / false
      */
-    public static boolean canOpen(char[][] map, int playerX, int playerY, boolean[][] chestData) {
+    public static boolean canOpen(char[][] map, int playerX, int playerY, int enterX, int enterY) throws IOException {
+        boolean alreadyOpened = false;
+        /* Check if player has already opened chest */
+        File chestData = new File(String.format("txt/gameData/%d,%d_chestData.txt", enterX, enterY));
+        Scanner scanner = new Scanner(chestData);
+
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+            if (line.equals((String.format("%d,%d", playerX, playerY)))) {
+                alreadyOpened = true;
+            }
+        }
+
+        scanner.close();
+
         /*
          * Check if the tile player is trynig to move to is in OPEN and the chest hasint
          * already been opened
          */
-        if (!chestData[playerY][playerX] && OPEN.contains(map[playerY][playerX])) {
+        if (!alreadyOpened && OPEN.contains(map[playerY][playerX])) {
             return true;
         } else {
             return false;
