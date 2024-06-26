@@ -573,7 +573,7 @@ public class Starfall {
                         if (!World
                                 .fileToArray(Paths.get("txt", "gameData",
                                         String.format("%d,%d_chestData.txt", enterX, enterY)))
-                                .contains(String.format("%d,%d", row, col))) {
+                                .contains(String.format("%d,%d", col, row))) {
                             /* Chest not opened */
                             textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
                             textGraphics.setCharacter(drawX, drawY, '=');
@@ -586,7 +586,7 @@ public class Starfall {
                         if (!World
                                 .fileToArray(Paths.get("txt", "gameData",
                                         String.format("%d,%d_chestData.txt", enterX, enterY)))
-                                .contains(String.format("%d,%d", row, col))) {
+                                .contains(String.format("%d,%d", col, row))) {
                             /* Heart still here */
                             textGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT);
                             textGraphics.setCharacter(drawX, drawY, '♥');
