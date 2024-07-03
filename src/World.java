@@ -130,9 +130,11 @@ public class World {
      * @param terminalWidth
      * @param terminalHeight
      * @param path           the enemy ship to use
+     * @param laserAmmo
+     * @param cannonAmmo
      */
     public static void fight(Screen screen, TextGraphics textGraphics, int terminalWidth, int terminalHeight,
-            Path path) {
+            Path path, int laserAmmo, int cannonAmmo) {
         final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
         final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
 
@@ -168,8 +170,9 @@ public class World {
             e.printStackTrace();
         }
 
-        /* Print the fight controls */
-        textGraphics.putString(3, panelHeight - 2, "Z: LASER       X: CANNON");
+        /* Print the fight controls and ammo */
+        textGraphics.putString(3, panelHeight - 2,
+                String.format("Z: LASER    %d       X: ROCKET  %d", laserAmmo, cannonAmmo));
     }
 
     /**
@@ -555,7 +558,7 @@ public class World {
         textGraphics.putString(5, 5, String.format("YOU FIND %d COINS", coinsFound));
 
         /* Print the enemy ship */
-        try (var in = Files.newBufferedReader(Paths.get("txt", "Maps", String.format("enemy%d.txt", enemyNum)),
+        try (var in = Files.newBufferedReader(Paths.get("txt", "Art", String.format("enemy%d.txt", enemyNum)),
                 StandardCharsets.UTF_8)) {
             String line = null;
             int row = 10;

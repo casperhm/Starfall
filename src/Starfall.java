@@ -47,6 +47,8 @@ public class Starfall {
     int maxHealth = 0;
     private final int capHealth = config[2];
     int coins = 0;
+    int laserAmmo = 10;
+    int cannonAmmo = 1;
 
     boolean fighting = false;
     int enemyNum = 0;
@@ -82,295 +84,299 @@ public class Starfall {
     public void run() throws IOException {
         final int panelWidth = terminalWidth - UI.INFO_RIGHT_OFFSET - 1;
         final int panelHeight = terminalHeight - UI.MESSAGE_BOTTOM_OFFSET - 1;
+        boolean dead = false;
 
-        /* Draw the main menu and select new or load save */
-        boolean hasChosen = false;
-        int selected = 0; // the option the user has selected, 0 is new save 1 is load save
+        /* The respawn and menu loop */
+        while (true) {
+            /* Draw the main menu and select new or load save */
+            boolean hasChosen = false;
+            int selected = 0; // the option the user has selected, 0 is new save 1 is load save
 
-        while (!hasChosen) {
-            UI.menuScreen(Paths.get("txt", "Menus", "mainMenu.txt"), textGraphics, screen, terminalWidth,
-                    terminalHeight,
-                    selected);
-            screen.refresh();
-
-            /* Get user input */
-            KeyStroke keyStroke = screen.readInput();
-            KeyType keyType = keyStroke.getKeyType();
-
-            if (keyType == KeyType.ArrowUp) {
-                if (selected == 1) {
-                    selected = 0;
+            while (!hasChosen) {
+                if (dead) {
+                    UI.menuScreen(Paths.get("txt", "Menus", "deathScreen.txt"), textGraphics, screen, terminalWidth,
+                            terminalHeight, selected);
+                    dead = false;
+                } else {
+                    UI.menuScreen(Paths.get("txt", "Menus", "mainMenu.txt"), textGraphics, screen, terminalWidth,
+                            terminalHeight,
+                            selected);
                 }
-            } else if (keyType == KeyType.ArrowDown) {
-                if (selected == 0) {
-                    selected = 1;
+                screen.refresh();
+
+                /* Get user input */
+                KeyStroke keyStroke = screen.readInput();
+                KeyType keyType = keyStroke.getKeyType();
+
+                if (keyType == KeyType.ArrowUp) {
+                    if (selected == 1) {
+                        selected = 0;
+                    }
+                } else if (keyType == KeyType.ArrowDown) {
+                    if (selected == 0) {
+                        selected = 1;
+                    }
+                }
+
+                /* User confirmed */
+                if (keyType == KeyType.Character && keyStroke.getCharacter() == ' ') {
+                    saveSlot = UI.saveSelect(textGraphics, screen, terminalWidth, terminalHeight, selected);
+                    /* saveSlot returns 999 if the user chooses to go back to the main menu */
+                    if (saveSlot != 999) {
+                        hasChosen = true;
+                    }
                 }
             }
 
-            /* User confirmed */
-            if (keyType == KeyType.Character && keyStroke.getCharacter() == ' ') {
-                saveSlot = UI.saveSelect(textGraphics, screen, terminalWidth, terminalHeight, selected);
-                /* saveSlot returns 999 if the user chooses to go back to the main menu */
-                if (saveSlot != 999) {
-                    hasChosen = true;
+            /* Setup stats from save slot, or config if new save */
+            /* Check if the saveSlot selected is full or empty */
+            blankSlot = false;
+            try (var in = Files.newBufferedReader(
+                    Paths.get("txt", "gameData", "SAVES", String.format("SAVE_%d", saveSlot), "SAVE.txt"),
+                    StandardCharsets.UTF_8)) {
+                if (in.readLine() == null) {
+                    blankSlot = true;
+                } else {
+                    blankSlot = false;
                 }
-            }
-        }
 
-        /* Setup stats from save slot, or config if new save */
-        /* Check if the saveSlot selected is full or empty */
-        blankSlot = false;
-        try (var in = Files.newBufferedReader(
-                Paths.get("txt", "gameData", "SAVES", String.format("SAVE_%d", saveSlot), "SAVE.txt"),
-                StandardCharsets.UTF_8)) {
-            if (in.readLine() == null) {
-                blankSlot = true;
-            } else {
-                blankSlot = false;
-            }
+                /* get save data defualts from config file */
+                if (blankSlot) {
+                    health = config[0];
+                    maxHealth = config[1];
+                    coins = config[3];
+                    playerX = config[4];
+                    playerY = config[5];
+                    XP = config[6];
+                } else {
+                    /* Get data from save file */
+                    int[] save = World.load(saveSlot);
 
-            /* get save data defualts from config file */
-            if (blankSlot) {
-                health = config[0];
-                maxHealth = config[1];
-                coins = config[3];
-                playerX = config[4];
-                playerY = config[5];
-                XP = config[6];
-            } else {
-                /* Get data from save file */
+                    playerX = save[0];
+                    playerY = save[1];
+                    health = save[3];
+                    maxHealth = save[4];
+                    coins = save[5];
+                    XP = save[6];
+                    enterX = save[7];
+                    enterY = save[8];
+                }
+            } catch (IOException e) {
+                System.out.println("An error occurred.");
+                e.printStackTrace();
+            }
+            /* If is on main map */
+            char[][] map = UI.map(Paths.get("txt", "Maps", "map.txt"), screen);
+            boolean onMainMap = true;
+
+            /* Get the map from save if is not a blank save */
+            /* if save[whatever] is not -1 get map from name of that coord */
+            if (!blankSlot) {
                 int[] save = World.load(saveSlot);
 
-                playerX = save[0];
-                playerY = save[1];
-                health = save[3];
-                maxHealth = save[4];
-                coins = save[5];
-                XP = save[6];
-                enterX = save[7];
-                enterY = save[8];
-            }
-        } catch (IOException e) {
-            System.out.println("An error occurred.");
-            e.printStackTrace();
-        }
-        /* If is on main map */
-        char[][] map = UI.map(Paths.get("txt", "Maps", "map.txt"), screen);
-        boolean onMainMap = true;
-
-        /* Get the map from save if is not a blank save */
-        /* if save[whatever] is not -1 get map from name of that coord */
-        if (!blankSlot) {
-            int[] save = World.load(saveSlot);
-
-            /* Is in a room */
-            if (save[7] != -1) {
-                map = UI.map(Paths.get("txt", "Maps", String.format("%d,%d.txt", enterX, enterY)), screen);
-                onMainMap = false;
-            }
-        }
-
-        /* Set up chestData file */
-        chestData = new File(String.format("txt/gameData/SAVES/SAVE_%d/%d,%d_chestData.txt", saveSlot, enterX, enterY));
-        chestData.createNewFile();
-
-        /* Get the map message */
-        String message = UI.getMapMessage(Paths.get("txt", "Maps", "map.txt"));
-
-        /* Draw the map */
-        drawMap(map, onMainMap);
-        UI.drawInventory(screen, textGraphics, terminalWidth, terminalHeight, health, maxHealth, coins);
-        textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
-        UI.print(message, terminalWidth, terminalHeight, textGraphics);
-        screen.refresh();
-
-        /* This is the main game loop */
-        while (true) {
-            /* Save the game */
-            World.save(playerX, playerY, health, maxHealth, coins, XP, saveSlot, enterX, enterY);
-
-            /* Get player input */
-            KeyStroke keyStroke = screen.readInput();
-
-            int coords[] = Player.move(keyStroke, playerX, playerY, map[0].length, map.length);
-
-            /*
-             * Update positions from Player.move, but only if it is a valid position ; (not
-             * blocked by walls)
-             */
-            if (Player.canMove(map, coords[0], coords[1]) && !fighting) {
-                playerX = coords[0];
-                playerY = coords[1];
-
-                /*
-                 * Fighting
-                 * You have a chance to be attacked by an enemy ship each time you move. this
-                 * starts at 0 and moves up based on xp and area - i havent added xp yet it is
-                 * just 1/100 for now
-                 */
-                double fightChance = Math.random();
-
-                if (fightChance < 0.01 && !fighting && onMainMap) {
-                    fighting = true;
-
-                    enemyNum = random.nextInt(0, 3);
-                    /* Get enemy health */
-                    switch (enemyNum) {
-                        case 0:
-                            enemyHealth = 150;
-                            break;
-                        case 1:
-                            enemyHealth = 120;
-                            break;
-                        case 2:
-                            enemyHealth = 70;
-                    }
-
-                    /* Clear the panel */
-                    for (int y = 1; y < panelHeight; y++) {
-                        for (int x = 1; x < panelWidth; x++) {
-                            textGraphics.putString(x, y, " ");
-                        }
-                    }
-                    screen.refresh();
+                /* Is in a room */
+                if (save[7] != -1) {
+                    map = UI.map(Paths.get("txt", "Maps", String.format("%d,%d.txt", enterX, enterY)), screen);
+                    onMainMap = false;
                 }
             }
 
-            /*
-             * Check if player can enter
-             * if spacebar pressed and on valid enter tile, change map[][] to the file named
-             * by the enter coords
-             * For example, a ship on 23,13 had a map named 23,13.txt
-             */
-            KeyType keyType = keyStroke.getKeyType();
+            /* Set up chestData file */
+            chestData = new File(
+                    String.format("txt/gameData/SAVES/SAVE_%d/%d,%d_chestData.txt", saveSlot, enterX, enterY));
+            chestData.createNewFile();
 
-            if ((keyType == KeyType.Character && keyStroke.getCharacter() == ' ')
-                    && Player.canEnter(map, playerX, playerY)) {
+            /* Get the map message */
+            String message = UI.getMapMessage(Paths.get("txt", "Maps", "map.txt"));
 
-                enterX = playerX;
-                enterY = playerY;
-
-                map = UI.map(Paths.get("txt", "Maps", String.format("%d,%d.txt", playerX, playerY)), screen);
-
-                /* Set up chestData file if not found already */
-                chestData = new File(
-                        String.format("txt/gameData/SAVES/SAVE_%d/%d,%d_chestData.txt", saveSlot, enterX, enterY));
-                chestData.createNewFile();
-
-                ArrayList<String> chestArray = new ArrayList<String>();
-
-                onMainMap = false;
-
-                message = UI.getMapMessage(Paths.get("txt", "Maps", String.format("%d,%d.txt", playerX, playerY)));
-                textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
-                UI.print(message, terminalWidth, terminalHeight, textGraphics);
-
-                /* Find where the entrance is in the map */
-                for (int row = 0; row < map.length; row++) {
-                    for (int col = 0; col < map[0].length; col++) {
-                        if (map[row][col] == '0') {
-                            playerY = row;
-                            playerX = col;
-                        }
-                    }
-                }
-
-                /* For exiting rooms back to the main map */
-            } else if ((keyType == KeyType.Character && keyStroke.getCharacter() == ' ')
-                    && Player.canExit(map, playerX, playerY)) {
-                map = UI.map(Paths.get("txt", "Maps", "map.txt"), screen);
-                onMainMap = true;
-                message = UI.getMapMessage(Paths.get("txt", "Maps", "map.txt"));
-                textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
-                UI.print(message, terminalWidth, terminalHeight, textGraphics);
-                playerX = enterX;
-                playerY = enterY;
-
-                /* Reset enter x and y to -1 - not in room */
-                enterX = -1;
-                enterY = -1;
-            }
-
-            /* For openning chests */
-            if (Player.canOpen(map, playerX, playerY, enterX, enterY, saveSlot)
-                    && (keyType == KeyType.Character && keyStroke.getCharacter() == ' ')) {
-
-                /* Find out what kind of chest it is */
-                if (map[playerY][playerX] == '=') {
-                    /* Coin chest */
-                    coins = Player.openChest(coins);
-                } else if (map[playerY][playerX] == '♥') {
-                    /* Heart chest */
-                    if (maxHealth < capHealth) {
-                        maxHealth++;
-                    }
-                    /* Heal player fully */
-                    health = maxHealth;
-                }
-
-                /*
-                 * Save the coordinates of the chest opened to temporary array, move to file
-                 * later
-                 */
-                String add = String.format("%d,%d", playerX, playerY);
-                chestArray.add(add);
-
-                /* Save chestArray to chestData.txt to make it permanent */
-                FileWriter w = new FileWriter(
-                        String.format("txt/gameData/SAVES/SAVE_%d/%d,%d_chestData.txt", saveSlot, enterX, enterY));
-                BufferedWriter bw = new BufferedWriter(w);
-
-                for (int i = 0; i < chestArray.size(); i++) {
-                    bw.write(chestArray.get(i));
-                    bw.newLine();
-                }
-                bw.close();
-            }
-
-            /* Update terminal sizes */
-            screen.doResizeIfNecessary();
-            terminalHeight = screen.getTerminalSize().getRows();
-            terminalWidth = screen.getTerminalSize().getColumns();
-
-            /* Draw UI */
-            screen.clear();
+            /* Draw the map */
+            drawMap(map, onMainMap);
             UI.drawInventory(screen, textGraphics, terminalWidth, terminalHeight, health, maxHealth, coins);
             textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
             UI.print(message, terminalWidth, terminalHeight, textGraphics);
-
-            /* Draw the game panel */
-            if (!fighting) {
-                drawMap(map, onMainMap);
-            } else {
-                fightLoop(keyStroke, enemyNum); // start the fight loop
-            }
             screen.refresh();
 
-            /* Check for death */
-            if (health < 0) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
+            /* This is the main game loop */
+            while (!dead) {
+                /* Save the game */
+                World.save(playerX, playerY, health, maxHealth, coins, XP, saveSlot, enterX, enterY);
+
+                /* Get player input */
+                KeyStroke keyStroke = screen.readInput();
+
+                int coords[] = Player.move(keyStroke, playerX, playerY, map[0].length, map.length);
+
+                /*
+                 * Update positions from Player.move, but only if it is a valid position ; (not
+                 * blocked by walls)
+                 */
+                if (Player.canMove(map, coords[0], coords[1]) && !fighting) {
+                    playerX = coords[0];
+                    playerY = coords[1];
+
+                    /*
+                     * Fighting
+                     * You have a chance to be attacked by an enemy ship each time you move. this
+                     * starts at 0 and moves up based on xp and area - i havent added xp yet it is
+                     * just 1/100 for now
+                     */
+                    double fightChance = Math.random();
+
+                    if (fightChance < 0.5 && !fighting && onMainMap) {
+                        fighting = true;
+
+                        enemyNum = random.nextInt(0, 3);
+                        /* Get enemy health */
+                        switch (enemyNum) {
+                            case 0:
+                                enemyHealth = 150;
+                                break;
+                            case 1:
+                                enemyHealth = 120;
+                                break;
+                            case 2:
+                                enemyHealth = 70;
+                        }
+
+                        /* Clear the panel */
+                        for (int y = 1; y < panelHeight; y++) {
+                            for (int x = 1; x < panelWidth; x++) {
+                                textGraphics.putString(x, y, " ");
+                            }
+                        }
+                        screen.refresh();
+                    }
                 }
 
-                textGraphics.setForegroundColor(TextColor.ANSI.RED);
-                selected = 0;
-                UI.menuScreen(Paths.get("txt", "Menus", "deathScreen.txt"), textGraphics, screen, terminalWidth,
-                        terminalHeight,
-                        selected);
-                fighting = false;
+                /*
+                 * Check if player can enter
+                 * if spacebar pressed and on valid enter tile, change map[][] to the file named
+                 * by the enter coords
+                 * For example, a ship on 23,13 had a map named 23,13.txt
+                 */
+                KeyType keyType = keyStroke.getKeyType();
+
+                if ((keyType == KeyType.Character && keyStroke.getCharacter() == ' ')
+                        && Player.canEnter(map, playerX, playerY)) {
+
+                    enterX = playerX;
+                    enterY = playerY;
+
+                    map = UI.map(Paths.get("txt", "Maps", String.format("%d,%d.txt", playerX, playerY)), screen);
+
+                    /* Set up chestData file if not found already */
+                    chestData = new File(
+                            String.format("txt/gameData/SAVES/SAVE_%d/%d,%d_chestData.txt", saveSlot, enterX, enterY));
+                    chestData.createNewFile();
+
+                    ArrayList<String> chestArray = new ArrayList<String>();
+
+                    onMainMap = false;
+
+                    message = UI.getMapMessage(Paths.get("txt", "Maps", String.format("%d,%d.txt", playerX, playerY)));
+                    textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+                    UI.print(message, terminalWidth, terminalHeight, textGraphics);
+
+                    /* Find where the entrance is in the map */
+                    for (int row = 0; row < map.length; row++) {
+                        for (int col = 0; col < map[0].length; col++) {
+                            if (map[row][col] == '0') {
+                                playerY = row;
+                                playerX = col;
+                            }
+                        }
+                    }
+
+                    /* For exiting rooms back to the main map */
+                } else if ((keyType == KeyType.Character && keyStroke.getCharacter() == ' ')
+                        && Player.canExit(map, playerX, playerY)) {
+                    map = UI.map(Paths.get("txt", "Maps", "map.txt"), screen);
+                    onMainMap = true;
+                    message = UI.getMapMessage(Paths.get("txt", "Maps", "map.txt"));
+                    textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+                    UI.print(message, terminalWidth, terminalHeight, textGraphics);
+                    playerX = enterX;
+                    playerY = enterY;
+
+                    /* Reset enter x and y to -1 - not in room */
+                    enterX = -1;
+                    enterY = -1;
+                }
+
+                /* For openning chests */
+                if (Player.canOpen(map, playerX, playerY, enterX, enterY, saveSlot)
+                        && (keyType == KeyType.Character && keyStroke.getCharacter() == ' ')) {
+
+                    /* Find out what kind of chest it is */
+                    if (map[playerY][playerX] == '=') {
+                        /* Coin chest */
+                        coins = Player.openChest(coins);
+                    } else if (map[playerY][playerX] == '♥') {
+                        /* Heart chest */
+                        if (maxHealth < capHealth) {
+                            maxHealth++;
+                        }
+                        /* Heal player fully */
+                        health = maxHealth;
+                    }
+
+                    /*
+                     * Save the coordinates of the chest opened to temporary array, move to file
+                     * later
+                     */
+                    String add = String.format("%d,%d", playerX, playerY);
+                    chestArray.add(add);
+
+                    /* Save chestArray to chestData.txt to make it permanent */
+                    FileWriter w = new FileWriter(
+                            String.format("txt/gameData/SAVES/SAVE_%d/%d,%d_chestData.txt", saveSlot, enterX, enterY));
+                    BufferedWriter bw = new BufferedWriter(w);
+
+                    for (int i = 0; i < chestArray.size(); i++) {
+                        bw.write(chestArray.get(i));
+                        bw.newLine();
+                    }
+                    bw.close();
+                }
+
+                /* Update terminal sizes */
+                screen.doResizeIfNecessary();
+                terminalHeight = screen.getTerminalSize().getRows();
+                terminalWidth = screen.getTerminalSize().getColumns();
+
+                /* Draw UI */
+                screen.clear();
+                UI.drawInventory(screen, textGraphics, terminalWidth, terminalHeight, health, maxHealth, coins);
+                textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+                UI.print(message, terminalWidth, terminalHeight, textGraphics);
+
+                /* Draw the game panel */
+                if (!fighting) {
+                    drawMap(map, onMainMap);
+                } else {
+                    fightLoop(keyStroke, enemyNum); // start the fight loop
+                }
                 screen.refresh();
 
-                /* Quit game */
-                try {
-                    Thread.sleep(10000);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                }
+                /* Check for death */
+                if (health < 0) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
 
-                /* This will have to do until i make a save system */
-                System.exit(0);
+                    textGraphics.setForegroundColor(TextColor.ANSI.RED);
+                    selected = 0;
+                    UI.menuScreen(Paths.get("txt", "Menus", "deathScreen.txt"), textGraphics, screen, terminalWidth,
+                            terminalHeight,
+                            selected);
+                    fighting = false;
+                    screen.refresh();
+
+                    /* Continue back to main menu */
+                    dead = true;
+                }
             }
         }
     }
@@ -387,7 +393,7 @@ public class Starfall {
     private void fightLoop(KeyStroke keyStroke, int enemyNum) throws IOException {
 
         /*
-         * The turn system is basicly jsut to make sure the enemy doesent shoot until
+         * The turn system is basicly just to make sure the enemy doesent shoot until
          * the player has used a wepaon, not just pressed some random key by mistake
          */
         boolean playerTurn = true;
@@ -409,18 +415,20 @@ public class Starfall {
         /* Print fight UI */
         UI.print(message, terminalWidth, terminalHeight, textGraphics);
         World.fight(screen, textGraphics, terminalWidth, terminalHeight,
-                Paths.get("txt", "Art", String.format("enemy%d.txt", enemyNum)));
+                Paths.get("txt", "Art", String.format("enemy%d.txt", enemyNum)), laserAmmo, cannonAmmo);
 
         screen.refresh();
 
         if (playerTurn) {
             /* Shoot weapon */
-            if (keyType == KeyType.Character && keyStroke.getCharacter() == 'z') {
+            if (keyType == KeyType.Character && keyStroke.getCharacter() == 'z' && laserAmmo > 0) {
                 enemyHealth -= Player.shootLaser(screen, textGraphics, terminalWidth, terminalHeight);
+                laserAmmo--;
                 playerTurn = false;
                 enemyTurn = true;
-            } else if (keyType == KeyType.Character && keyStroke.getCharacter() == 'x') {
+            } else if (keyType == KeyType.Character && keyStroke.getCharacter() == 'x' && cannonAmmo > 0) {
                 enemyHealth -= Player.shootCannon(screen, textGraphics, terminalWidth, terminalHeight);
+                cannonAmmo--;
                 playerTurn = false;
                 enemyTurn = true;
             }
@@ -464,7 +472,7 @@ public class Starfall {
 
             /* Print ships */
             World.fight(screen, textGraphics, terminalWidth, terminalHeight,
-                    Paths.get("txt", "Art", String.format("enemy%d.txt", enemyNum)));
+                    Paths.get("txt", "Art", String.format("enemy%d.txt", enemyNum)), laserAmmo, cannonAmmo);
             screen.refresh();
 
             try {
