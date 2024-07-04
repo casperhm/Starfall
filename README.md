@@ -15,24 +15,28 @@ SAVE FILE SETUP
 
 This shows how the save files work
 
-playerX
-playerY
-health
-maxHealth
-coins
-XP
-enterX - these will be -1 if on the main map, and the two parts of the room map file name if in a room
-enterY
+playerX,
+playerY,
+health,
+maxHealth,
+coins,
+XP,
+enterX - these will be -1 if on the main map, and the two parts of the room map file name if in a room,
+enterY,
+laserAmmo,
+cannonAmmo,
 
 
 CONFIG FILE SETUP
 
 This just shows how to set up the config file - basicly the default save.
 
-HEALTH
-MAXHEALTH
-CAPHEALTH
-COINS
-PLAYERX
-PLAYERY
-XP
+HEALTH,
+MAXHEALTH,
+CAPHEALTH,
+COINS,
+PLAYERX,
+PLAYERY,
+XP,
+LASERAMMO,
+CANNONAMMO,

@@ -1,11 +1,11 @@
+
 /* Starfall
  * A game of space exploration with level customisation
  * Date: 15/5/24
  * Author: Casper Hillyer Magoffin
  */
-
+import java.util.*;
 import com.googlecode.lanterna.TextColor;
-import com.googlecode.lanterna.graphics.StyleSet.Set;
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.input.KeyStroke;
 import com.googlecode.lanterna.input.KeyType;
@@ -22,10 +22,12 @@ import java.security.SecureRandom;
 import java.io.IOException;
 import java.io.FileWriter;
 import java.io.BufferedWriter;
-import java.util.Scanner;
-import java.util.ArrayList;
 
 public class Starfall {
+    /* WALLS collision layer - player cannot walk thorugh these */
+    private static final Set<Character> WALLS = Collections
+            .unmodifiableSet(new HashSet<>(Arrays.asList('#', '/', '\\', '|', '-', '+')));
+
     private final Screen screen;
 
     /* coinfig data from config file */
@@ -37,6 +39,8 @@ public class Starfall {
     private TextGraphics textGraphics;
     private int playerX = 0;
     private int playerY = 0;
+    int enemyX; // -1 means no enemy alive
+    int enemyY;
     int enterX = -1; // -1 means not in a map
     int enterY = -1;
     private int terminalHeight;
@@ -47,10 +51,11 @@ public class Starfall {
     int maxHealth = 0;
     private final int capHealth = config[2];
     int coins = 0;
-    int laserAmmo = 10;
-    int cannonAmmo = 1;
+    int laserAmmo = config[7];
+    int cannonAmmo = config[8];
 
     boolean fighting = false;
+    boolean beingChased = false;
     int enemyNum = 0;
     int enemyHealth = 0;
 
@@ -160,6 +165,8 @@ public class Starfall {
                     XP = save[6];
                     enterX = save[7];
                     enterY = save[8];
+                    laserAmmo = save[9];
+                    cannonAmmo = save[10];
                 }
             } catch (IOException e) {
                 System.out.println("An error occurred.");
@@ -199,7 +206,8 @@ public class Starfall {
             /* This is the main game loop */
             while (!dead) {
                 /* Save the game */
-                World.save(playerX, playerY, health, maxHealth, coins, XP, saveSlot, enterX, enterY);
+                World.save(playerX, playerY, health, maxHealth, coins, XP, saveSlot, enterX, enterY, laserAmmo,
+                        cannonAmmo);
 
                 /* Get player input */
                 KeyStroke keyStroke = screen.readInput();
@@ -217,13 +225,18 @@ public class Starfall {
                     /*
                      * Fighting
                      * You have a chance to be attacked by an enemy ship each time you move. this
-                     * starts at 0 and moves up based on xp and area - i havent added xp yet it is
-                     * just 1/100 for now
+                     * starts at 0 and moves up based on xp and area - the enemy ship will chase the
+                     * player until making contact and begining a battle
                      */
                     double fightChance = Math.random();
 
-                    if (fightChance < 0.5 && !fighting && onMainMap) {
-                        fighting = true;
+                    if (fightChance < 0.01 && !beingChased && !fighting && onMainMap) {
+                        beingChased = true;
+
+                        /* Get spawned enemy coords */
+                        int[] enemyCoords = World.spawnEnemy(playerX, playerY, textGraphics, map);
+                        enemyX = enemyCoords[0];
+                        enemyY = enemyCoords[1];
 
                         enemyNum = random.nextInt(0, 3);
                         /* Get enemy health */
@@ -238,14 +251,52 @@ public class Starfall {
                                 enemyHealth = 70;
                         }
 
-                        /* Clear the panel */
-                        for (int y = 1; y < panelHeight; y++) {
-                            for (int x = 1; x < panelWidth; x++) {
-                                textGraphics.putString(x, y, " ");
-                            }
-                        }
                         screen.refresh();
                     }
+                }
+
+                /* Move the enemy towards the player if present */
+                if (beingChased) {
+                    /*
+                     * The purpose of putting the coords into an array and then into the actual
+                     * varibles is so I can "move" the enemy forward, then check if it is a valid
+                     * move, then move the data from the array to actual coordinates
+                     */
+                    int[] enemyCoords = new int[2];
+                    double horiOrVerti = Math.random(); // decides if the enemy will move horizontally or verticlally
+                                                        // this turn
+                    /* Run twice */
+                    for (int i = 0; i < 2; i++) {
+                        if (horiOrVerti < 0.5) {
+                            if (enemyX > playerX) {
+                                enemyCoords[0] = enemyX - 1;
+                            } else {
+                                enemyCoords[0] = enemyX + 1;
+                            }
+                        } else {
+                            if (enemyY < playerY) {
+                                enemyCoords[1] = enemyY + 1;
+                            } else {
+                                enemyCoords[1] = enemyY - 1;
+                            }
+                        }
+                        if (!WALLS.contains(map[enemyY][enemyX])) {
+                            if (horiOrVerti < 0.5) {
+                                enemyX = enemyCoords[0];
+                            } else {
+                                enemyY = enemyCoords[1];
+                            }
+                        }
+                    }
+                }
+
+                /* Check if enemy has made contanct with player */
+                if (playerX == enemyX && playerY == enemyY) {
+                    fighting = true;
+                    beingChased = false;
+                    screen.clear();
+                    UI.drawInventory(screen, textGraphics, terminalWidth, terminalHeight, health, maxHealth, coins);
+                    fightLoop(keyStroke, enemyNum);
                 }
 
                 /*
@@ -609,6 +660,10 @@ public class Starfall {
                             textGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT);
                             textGraphics.setCharacter(drawX, drawY, '♡');
                         }
+                    } else if (enemyY == row && enemyX == col) {
+                        /* If its an enemy */
+                        textGraphics.setForegroundColor(TextColor.ANSI.RED);
+                        textGraphics.setCharacter(drawX, drawY, '☠');
                     } else {
                         /* Just a normal tile */
                         textGraphics.setForegroundColor(TextColor.ANSI.WHITE);

@@ -12,32 +12,38 @@ import java.security.SecureRandom;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.*;
+
 import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.graphics.TextGraphics;
 import com.googlecode.lanterna.screen.Screen;
 import java.util.Scanner;
 
 public class World {
+    /* WALLS collision layer - player cannot walk thorugh these */
+    private static final Set<Character> WALLS = Collections
+            .unmodifiableSet(new HashSet<>(Arrays.asList('#', '/', '\\', '|', '-', '+')));
 
     static final SecureRandom random = new SecureRandom(); // for random ints
-
-    public static void main(String[] args) {
-
-    }
 
     /**
      * Saves player information to the SAVE files
      * 
-     * @param playerX   information to save
+     * @param playerX    information to save
      * @param playerY
      * @param health
      * @param maxHealth
      * @param coins
      * @param XP
-     * @param saveSlot  the file to save to
+     * @param laserAmmo
+     * @param cannonAmmo
+     * @param saveSlot   the file to save to
      */
     public static void save(int playerX, int playerY, int health, int maxHealth, int coins, int XP, int saveSlot,
-            int enterX, int enterY) {
+            int enterX, int enterY, int laserAmmo, int cannonAmmo) {
         try {
             FileWriter writer = new FileWriter(String.format("txt/gameData/SAVES/SAVE_%d/SAVE.txt", saveSlot));
             BufferedWriter bw = new BufferedWriter(writer);
@@ -58,6 +64,10 @@ public class World {
             bw.write(Integer.toString(enterX));
             bw.newLine();
             bw.write(Integer.toString(enterY));
+            bw.newLine();
+            bw.write(Integer.toString(laserAmmo));
+            bw.newLine();
+            bw.write(Integer.toString(cannonAmmo));
 
             bw.close();
         } catch (IOException e) {
@@ -73,7 +83,7 @@ public class World {
      * @return save[] is an array that has each line as one of the values
      */
     public static int[] load(int saveSlot) {
-        int[] save = new int[9];
+        int[] save = new int[11];
 
         try (var in = Files.newBufferedReader(
                 Paths.get("txt", "gameData", "SAVES", String.format("SAVE_%d", saveSlot), "SAVE.txt"),
@@ -86,6 +96,8 @@ public class World {
             save[6] = Integer.parseInt(in.readLine()); // XP
             save[7] = Integer.parseInt(in.readLine()); // room enter X
             save[8] = Integer.parseInt(in.readLine()); // room enter Y
+            save[9] = Integer.parseInt(in.readLine()); // laserAmmo
+            save[10] = Integer.parseInt(in.readLine()); // cannonAmmo
         } catch (IOException e) {
 
             System.out.println("An error occurred.");
@@ -103,7 +115,7 @@ public class World {
      *         line 1 of config is config[0] etc.
      */
     public static int[] config() {
-        int[] config = new int[7];
+        int[] config = new int[9];
 
         try (var in = Files.newBufferedReader(Paths.get("txt", "gameData", "config.txt"), StandardCharsets.UTF_8)) {
             config[0] = Integer.parseInt(in.readLine()); // health
@@ -113,6 +125,8 @@ public class World {
             config[4] = Integer.parseInt(in.readLine()); // playerX
             config[5] = Integer.parseInt(in.readLine()); // playerY
             config[6] = Integer.parseInt(in.readLine()); // XP
+            config[7] = Integer.parseInt(in.readLine()); // laserAmmo
+            config[8] = Integer.parseInt(in.readLine()); // cannonAmmo
         } catch (IOException e) {
 
             System.out.println("An error occurred.");
@@ -172,7 +186,54 @@ public class World {
 
         /* Print the fight controls and ammo */
         textGraphics.putString(3, panelHeight - 2,
-                String.format("Z: LASER    %d       X: ROCKET  %d", laserAmmo, cannonAmmo));
+                String.format("Z: LASER    %d       X: CANNON  %d", laserAmmo, cannonAmmo));
+    }
+
+    public static int[] spawnEnemy(int playerX, int playerY, TextGraphics textGraphics, char[][] map) {
+        double X;
+        double Y;
+        int enemyX = 0;
+        int enemyY = 0;
+
+        boolean validSpawn = false; // to prevent from spawning inside a wall
+
+        while (!validSpawn) {
+            if (Math.random() < 0.5) {
+                /* Spawn to the left of player */
+                X = playerX - Math.random() * 10;
+            } else {
+                /* Spawn to the right of player */
+                X = playerX + Math.random() * 10;
+            }
+
+            if (Math.random() < 0.5) {
+                /* Spawn below player */
+                Y = playerX - Math.random() * 15;
+            } else {
+                /* Spawn above player */
+                Y = playerX + Math.random() * 15;
+            }
+
+            /* Convert to int */
+            enemyX = (int) X;
+            enemyY = (int) Y;
+
+            /* Check for valid spawn */
+            if (enemyX > 2 && enemyX < map.length - 2 && enemyY > 2 && enemyY < map[0].length - 2) {
+                if (!WALLS.contains(map[enemyX][enemyY])) {
+                    /* Draw enemy */
+                    textGraphics.setForegroundColor(TextColor.ANSI.RED);
+                    textGraphics.putString(enemyX, enemyY, "o");
+                    textGraphics.setForegroundColor(TextColor.ANSI.WHITE);
+                    validSpawn = true;
+                }
+            }
+        }
+        /* Put enemy coords into an array to be returned */
+        int[] coords = new int[2];
+        coords[0] = enemyX;
+        coords[1] = enemyY;
+        return coords;
     }
 
     /**
